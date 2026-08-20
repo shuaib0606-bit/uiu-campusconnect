@@ -13,6 +13,10 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isAdmin() && ! $request->expectsJson()) {
+            return view('messages.disabled');
+        }
+
         $threads = Message::query()
             ->where('sender_id', $user->id)
             ->orWhere('receiver_id', $user->id)
@@ -27,12 +31,31 @@ class MessageController extends Controller
             ])
             ->sortByDesc(fn ($t) => $t['last']->created_at);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'threads' => $threads->values()->map(fn ($t) => [
+                    'user_id' => $t['user']->id,
+                    'name' => $t['user']->full_name,
+                    'avatar_initials' => $t['user']->avatar_initials,
+                    'role' => $t['user']->role,
+                    'designation' => $t['user']->designation,
+                    'last_body' => $t['last']->body ?: ($t['last']->attachment_path ? 'Attachment' : ''),
+                    'time' => $t['last']->created_at->diffForHumans(null, true),
+                    'unread' => $t['unread'],
+                ]),
+            ]);
+        }
+
         return view('messages.index', compact('threads'));
     }
 
     public function show(Request $request, User $user)
     {
         $me = $request->user();
+
+        if (! $request->expectsJson()) {
+            return redirect()->route('messages.index', ['with' => $user->id]);
+        }
 
         $messages = Message::query()
             ->where(fn ($q) => $q->where('sender_id', $me->id)->where('receiver_id', $user->id))
@@ -43,10 +66,21 @@ class MessageController extends Controller
         Message::where('sender_id', $user->id)->where('receiver_id', $me->id)->update(['is_read' => true]);
         SocialRules::forgetCountsFor($me->id);
 
-        return view('messages.show', [
-            'otherUser' => $user,
-            'messages' => $messages,
-            'canMessage' => SocialRules::canMessage($me, $user),
+        return response()->json([
+            'other_user' => [
+                'id' => $user->id,
+                'name' => $user->full_name,
+                'avatar_initials' => $user->avatar_initials,
+                'role' => $user->role,
+                'designation' => $user->designation,
+            ],
+            'messages' => $messages->map(fn (Message $m) => [
+                'id' => $m->id,
+                'body' => $m->body,
+                'attachment_url' => $m->attachment_path ? \Illuminate\Support\Facades\Storage::url($m->attachment_path) : null,
+                'mine' => $m->sender_id === $me->id,
+                'time' => $m->created_at->format('g:i A'),
+            ]),
         ]);
     }
 
@@ -55,6 +89,10 @@ class MessageController extends Controller
         $me = $request->user();
 
         if (! SocialRules::canMessage($me, $user)) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => true, 'reason' => 'You cannot message this person.'], 422);
+            }
+
             return back()->with('error', 'You cannot message this person.');
         }
 
@@ -64,6 +102,10 @@ class MessageController extends Controller
         ]);
 
         if (empty($data['body']) && ! $request->hasFile('attachment')) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => true, 'reason' => 'Write a message or attach a file.'], 422);
+            }
+
             return back()->with('error', 'Write a message or attach a file.');
         }
 
@@ -75,7 +117,7 @@ class MessageController extends Controller
             $type = $file->getClientMimeType();
         }
 
-        Message::create([
+        $message = Message::create([
             'sender_id' => $me->id,
             'receiver_id' => $user->id,
             'body' => $data['body'] ?? null,
@@ -84,6 +126,18 @@ class MessageController extends Controller
         ]);
 
         SocialRules::forgetCountsFor($user->id);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => [
+                    'id' => $message->id,
+                    'body' => $message->body,
+                    'attachment_url' => $path ? \Illuminate\Support\Facades\Storage::url($path) : null,
+                    'mine' => true,
+                    'time' => $message->created_at->format('g:i A'),
+                ],
+            ]);
+        }
 
         return back();
     }
