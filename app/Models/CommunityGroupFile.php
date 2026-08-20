@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CommunityGroupFile extends Model
 {
     public $timestamps = false;
-    protected $fillable = ['group_id', 'user_id', 'file_path', 'original_name', 'size', 'created_at'];
+    protected $fillable = ['group_id', 'user_id', 'title', 'file_path', 'original_name', 'size', 'created_at'];
 
     public function group(): BelongsTo
     {

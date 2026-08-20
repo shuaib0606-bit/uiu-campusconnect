@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CommunityGroup extends Model
 {
     protected $table = 'community_groups';
-    protected $fillable = ['name', 'slug', 'description', 'cover_path', 'visibility', 'owner_id'];
+    protected $fillable = ['name', 'slug', 'group_type', 'description', 'department', 'cover_path', 'visibility', 'owner_id'];
 
     public function owner(): BelongsTo
     {
