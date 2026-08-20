@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LostFoundItem extends Model
 {
-    protected $fillable = ['user_id', 'type', 'title', 'description', 'location', 'photo_path', 'status'];
+    protected $fillable = ['user_id', 'type', 'title', 'description', 'location', 'event_date', 'photo_path', 'status'];
+
+    protected function casts(): array
+    {
+        return ['event_date' => 'date'];
+    }
 
     public function user(): BelongsTo
     {
