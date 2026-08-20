@@ -12,14 +12,15 @@ class UserProfile extends Model
 
     protected $fillable = [
         'user_id', 'bio', 'profile_photo_path', 'cover_photo_path', 'room', 'phone',
-        'office_hours', 'skills', 'interests', 'courses_taught', 'research_interests',
-        'privacy_level', 'show_email', 'show_phone', 'show_friend_list',
+        'office_hours', 'skills', 'interests', 'courses_taught', 'research_interests', 'academic_resources',
+        'privacy_level', 'show_email', 'show_student_id', 'show_phone', 'show_friend_list',
     ];
 
     protected function casts(): array
     {
         return [
             'show_email' => 'boolean',
+            'show_student_id' => 'boolean',
             'show_phone' => 'boolean',
             'show_friend_list' => 'boolean',
         ];
