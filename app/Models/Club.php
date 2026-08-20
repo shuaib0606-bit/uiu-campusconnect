@@ -33,4 +33,9 @@ class Club extends Model
     {
         return $this->hasMany(ClubMembershipRequest::class);
     }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
 }

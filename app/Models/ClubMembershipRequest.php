@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClubMembershipRequest extends Model
 {
-    protected $fillable = ['club_id', 'user_id', 'status'];
+    protected $fillable = ['club_id', 'user_id', 'note', 'status'];
 
     public function club(): BelongsTo
     {
