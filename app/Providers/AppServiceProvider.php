@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Comment;
+use App\Models\ConnectionApplication;
 use App\Models\Post;
 use App\Policies\CommentPolicy;
 use App\Policies\PostPolicy;
@@ -48,6 +49,13 @@ class AppServiceProvider extends ServiceProvider
                 $user = Auth::user();
                 $view->with('unreadMessages', SocialRules::unreadMessageCount($user));
                 $view->with('unreadNotifications', SocialRules::unreadNotificationCount($user));
+
+                $pendingApplications = ConnectionApplication::whereIn('status', ['pending', 'reviewing'])
+                    ->when(! $user->isAdmin(), function ($query) use ($user) {
+                        $query->where(fn ($q) => $q->where('student_id', $user->id)->orWhere('target_id', $user->id));
+                    })
+                    ->count();
+                $view->with('pendingApplications', $pendingApplications);
             }
         });
     }
