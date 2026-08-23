@@ -30,6 +30,7 @@
 \usepackage[most]{tcolorbox}
 \usepackage{forest}
 \useforestlibrary{edges}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,calc}
 \usepackage[hidelinks]{hyperref}
 
 % ----------------------- Colours ---------------------------
@@ -269,8 +270,8 @@ Chapter~\ref{ch:wbs}.
 This document is the consolidated project management report for UIU
 CampusConnect. It is not a design specification and it is not a user manual; it
 records the management decisions that govern how the system will be built, by
-whom, in what order, and with what protection against failure. The report is
-organised as follows.
+whom, in what order, at what cost, and with what protection against failure. The
+report is organised as follows.
 
 \begin{itemize}
   \item \textbf{Chapter~\ref{ch:vision} -- Vision and Scope} fixes the boundary
@@ -278,18 +279,24 @@ organised as follows.
   must achieve, defines the functional areas that are inside the delivery
   boundary, and explicitly records what the team will \emph{not} build.
   \item \textbf{Chapter~\ref{ch:method} -- Development Methodology} compares the
-  candidate process models against the actual characteristics of this project
-  and justifies the selection of Agile Scrum, then shows how Scrum ceremonies
-  map onto the CampusConnect modules.
+  candidate process models against the actual characteristics of this project,
+  justifies the selection of Agile Scrum, gives a reasoned explanation of why
+  each alternative was set aside, and shows how Scrum ceremonies map onto the
+  CampusConnect modules.
+  \item \textbf{Chapter~\ref{ch:wbs} -- Work Breakdown Structure} decomposes the
+  entire scope into four hierarchical levels, from the platform itself down to
+  individually assignable work packages, with effort allocations that roll up to
+  100\% of the project.
+  \item \textbf{Chapter~\ref{ch:delphi} -- Wideband Delphi Estimation} converts
+  that structure into absolute effort. Five estimators worked through three
+  rounds of consensus estimation; the chapter records every round, analyses how
+  the estimates converged, and works one feature's estimation session through in
+  full.
   \item \textbf{Chapter~\ref{ch:risk} -- Risk Management and RMMM} identifies
   the risks that threaten the platform, defines the team's Risk Mitigation,
   Monitoring and Management procedure, works three representative risks through
   that procedure in full, and consolidates all identified risks into a risk plan
   sheet.
-  \item \textbf{Chapter~\ref{ch:wbs} -- Work Breakdown Structure} decomposes the
-  entire scope into four hierarchical levels, from the platform itself down to
-  individually assignable work packages, with effort allocations that roll up to
-  100\% of the project.
 \end{itemize}
 
 % ============================================================
@@ -745,6 +752,7 @@ backlog with new learning, and re-baseline the remaining effort against the WBS.
 \end{table}
 
 \subsection{Indicative Sprint Roadmap}
+\label{sec:roadmap}
 
 Table~\ref{tab:roadmap} shows how the WBS modules of Chapter~\ref{ch:wbs} are
 distributed across the semester. The ordering is driven by dependency:
@@ -775,379 +783,117 @@ and deployment. \\ \hline
 \end{tabular}
 \end{table}
 
-% ============================================================
-\chapter{Risk Management and RMMM}
-\label{ch:risk}
-% ============================================================
 
-\section{The Concept of Risk in this Project}
+\section{Why the Other Methodologies Were Not Chosen}
 
-A risk is not a problem yet; it is a possibility of a future problem. Risk
-analysis and management are the actions a software team takes to understand and
-control that uncertainty before it becomes damage. For CampusConnect the
-distinction matters practically: the platform stores personal data for the
-entire student body, carries official university communication and will face its
-heaviest load precisely on the days that matter most -- registration, section
-selection and result publication. Discovering these problems in production would
-be far more expensive than planning for them now.
+Selecting Agile Scrum is only half of the decision; the other half is being able
+to state why each alternative was set aside. The four subsections below give that
+reasoning in terms of UIU CampusConnect rather than in the abstract.
 
-Every risk in this project is characterised by two quantities, each scored from
-0 to 5:
+\subsection{Why not Waterfall}
 
-\begin{itemize}
-  \item \textbf{Probability} -- how likely the risk is to occur during the
-  project or in early operation.
-  \item \textbf{Impact} -- the severity of the consequence for users, data or
-  the schedule if it does occur.
-\end{itemize}
+Waterfall would require the team to freeze a complete requirements specification
+for all ten functional areas before writing any code, and to accept that no phase
+could be revisited once signed off. Three properties of this project make that
+untenable.
 
-Their product is the \textbf{risk exposure}, and it is the number the team uses
-to decide where to spend limited effort. Exposure of 20 or above is treated as
-critical and must have an active mitigation in the current sprint; 10--19 is
-significant and is scheduled; below 10 is monitored.
+First, the requirements genuinely are not knowable in advance. Whether a section
+announcement should reach the whole department or only the enrolled students,
+whether marketplace listings should expire automatically, and how aggressively the
+feed should rank departmental content are all questions that our sprint reviewers
+answered only after using a working screen. Under Waterfall those answers would
+arrive after the design phase had closed, and changing them would mean formal
+rework of documents that were already approved.
 
-\section{Risk Categories in UIU CampusConnect}
+Second, Waterfall places testing at the end. For a platform whose highest-exposure
+risks are a privacy breach, a peak-load failure and silent module integration
+defects (risks R1, R3 and R8 in Chapter~\ref{ch:risk}), discovering any of them in
+a final test phase would leave no time in a single semester to correct them.
 
-\begin{table}[htbp]
-\centering
-\caption{Risk categories and concrete CampusConnect examples}
-\label{tab:riskcat}
-\begin{tabular}{|L{2.7cm}|L{4.0cm}|L{7.7cm}|}
-\hline
-\rowhead \thead{Category} & \thead{Definition} & \thead{Examples in CampusConnect} \\ \hline
-\textbf{Technical risk} &
-Arising from technology, tools and system design. &
-The notification service fails to deliver under load; a module's API contract
-changes and breaks its consumers; the server goes down when the whole batch
-opens the results notice at once. \\ \hline
-\rowcolor{lvl3Row}
-\textbf{Project risk} &
-Arising from planning, scheduling and resource allocation. &
-A four-member team loses a member to illness mid-sprint; the semester deadline
-leaves no slack; the backlog keeps growing as reviewers request new features. \\ \hline
-\textbf{Business risk} &
-Threatening the value and adoption of the product. &
-Students continue to use existing Facebook groups and never adopt the platform;
-the university declines to endorse the official notice board, removing its
-authority. \\ \hline
-\rowcolor{lvl3Row}
-\textbf{External risk} &
-Originating outside the team's control. &
-A change in data-protection expectations forces rework of how personal data is
-stored; hosting provider outage; campus closure disrupting user testing. \\ \hline
-\end{tabular}
-\end{table}
+Third, Waterfall's strength -- heavy, complete documentation and a fixed
+contractual baseline -- buys us nothing here. There is no external client, no
+fixed-price contract and no regulatory approval gate that would justify the
+documentation overhead for a four-member student team.
 
-\section{The RMMM Strategy for UIU CampusConnect}
+Waterfall would be the correct choice for a project whose requirements are
+genuinely stable and externally fixed. CampusConnect is the opposite of that.
 
-RMMM -- Risk Mitigation, Monitoring and Management -- is the structured plan
-through which the team handles risk across the project lifecycle. Rather than
-restating the theory, this section describes the procedure the CampusConnect
-team actually follows.
+\subsection{Why not the Prototype model}
 
-\subsection{Risk Mitigation: acting before the risk occurs}
+The Prototype model is attractive at first glance because CampusConnect is a
+heavily user-facing product and we do intend to put screens in front of students
+early. The problem is that prototyping is a \emph{requirements elicitation
+technique}, not a complete development process. It tells the team how to discover
+what users want; it says nothing about how to schedule twelve components across a
+semester, how to integrate the work of four people, when to test, or when to
+release.
 
-Mitigation is the set of actions taken in advance to reduce either the
-probability or the impact of a risk. In this project mitigation is not a
-separate phase; it is embedded in the sprint cycle.
+Used as the overall model it also carries two specific dangers for this project.
+Because a prototype is deliberately built to be thrown away or reworked, teams
+under deadline pressure frequently promote a prototype into production; for a
+system that stores personal data and carries official notices, shipping
+prototype-quality authentication would be unacceptable. And because the model
+invites indefinite refinement cycles driven by user feedback, it is a direct
+accelerant for the scope creep risk (R9) that a twelve-module platform already
+faces.
 
-\begin{enumerate}
-  \item \textbf{Identification.} At every sprint planning session the team asks
-  what could go wrong with the work packages selected for that sprint. Anything
-  raised is written into the risk register with an owner.
-  \item \textbf{Analysis.} Each risk is scored for probability and impact on the
-  0--5 scale and its exposure computed. This is what produces the risk plan
-  sheet in Section~\ref{sec:riskplan}.
-  \item \textbf{Preventive design.} Risks with exposure of 20 or above generate
-  concrete engineering work packages in the WBS. Data-privacy risk is why
-  encryption and access-control auditing exist as WBS 1.3.1.1; peak-load risk is
-  why load testing exists as WBS 1.2.2.2; integration risk is why the automated
-  API test suite exists as WBS 1.2.2.1. Mitigation is therefore funded and
-  scheduled, not merely intended.
-  \item \textbf{Assignment.} Every risk has exactly one named owner among the
-  four team members, who is responsible for reporting its status.
-\end{enumerate}
+Our resolution is therefore not to reject prototyping but to demote it: it is used
+\emph{inside} sprints as a design activity for the feed, the event check-in flow
+and the notice board, while Scrum supplies the surrounding process discipline.
 
-\subsection{Risk Monitoring: watching while the project runs}
+\subsection{Why not the Spiral model}
 
-Monitoring is the continuous process of tracking known risks and detecting new
-ones. The team's monitoring mechanisms are deliberately lightweight so that they
-are actually performed.
+The Spiral model is the most defensible of the alternatives, because
+CampusConnect genuinely is risk-sensitive and Spiral is explicitly risk-driven.
+It was set aside for reasons of proportionality rather than principle.
+
+Spiral requires a formal risk analysis phase, with prototyping and evaluation, at
+every cycle of the project. That ceremony is justified when failure is
+catastrophic and irreversible -- avionics, medical devices, large fixed-price
+government contracts -- because there the cost of the analysis is trivially small
+against the cost of being wrong. CampusConnect is a campus platform built by four
+students: a defect is recoverable, a release can be rolled back, and there is no
+contractual exposure. Spending a meaningful share of a 126 person-day budget
+(Chapter~\ref{ch:delphi}) on formal risk cycles would consume effort that the
+project needs for construction.
+
+Spiral also assumes an experienced risk analyst, which a student team does not
+have, and it is widely regarded as difficult to administer even in industry.
+
+Crucially, rejecting Spiral does not mean rejecting risk discipline. We keep the
+part of Spiral that pays for itself -- systematic, repeated risk analysis -- and
+run it as the RMMM process of Chapter~\ref{ch:risk} inside the Scrum cycle:
+risks are re-scored at every sprint planning, trigger indicators are watched
+during the sprint, and mitigations are funded as WBS work packages. We get
+Spiral's risk awareness at Scrum's overhead.
+
+\subsection{Why not Agile without Scrum}
+
+Agile is a family of values, not a process. An unstructured Agile approach --
+iterating informally, responding to feedback, keeping documentation light --
+would suit this project's spirit but would leave three questions unanswered that
+Scrum answers explicitly.
 
 \begin{itemize}
-  \item The risk register is reviewed at the start of every sprint planning and
-  at every retrospective; probability and impact scores are revised in the light
-  of what the sprint revealed.
-  \item Each critical risk carries a \emph{trigger indicator} -- an observable
-  signal that the risk is materialising. Rising API error rates in the staging
-  logs indicate the integration risk; response times climbing above two seconds
-  during load tests indicate the peak-load risk; a falling count of daily active
-  test users indicates the adoption risk.
-  \item The daily stand-up is an explicit opportunity to raise a newly noticed
-  risk, and anything raised there enters the register the same day.
-  \item Sprint velocity is tracked against the WBS effort baseline; a persistent
-  shortfall is itself the trigger indicator for the schedule risk.
+  \item \textbf{Who decides what is built next?} Twelve components compete for a
+  fixed budget. Scrum's Product Owner and ordered product backlog give a single,
+  visible answer; informal Agile gives a debate.
+  \item \textbf{When is work integrated and demonstrated?} Scrum's timeboxed
+  sprint and sprint review force integration and stakeholder feedback on a fixed
+  cadence. Without that cadence, four people building in parallel would discover
+  integration defects late -- exactly risk R8.
+  \item \textbf{What stops the backlog from growing without limit?} The sprint
+  boundary and the formal approval step for new requirements are the team's
+  primary control on scope creep (risk R9).
 \end{itemize}
 
-\subsection{Risk Management: responding when the risk occurs}
-
-Management covers the actions taken once a risk has actually materialised.
-
-\begin{enumerate}
-  \item \textbf{Execute the contingency plan} recorded against that risk, rather
-  than improvising under pressure.
-  \item \textbf{Contain the damage} -- restore service, revoke access, roll back
-  the release or restore from backup, whichever the plan specifies.
-  \item \textbf{Communicate} to affected users and to the supervising faculty
-  member, with an honest statement of what happened and what is being done.
-  \item \textbf{Review and improve} at the next retrospective, updating the
-  mitigation so that the same failure cannot recur, and re-scoring the risk.
-\end{enumerate}
-
-\section{Worked RMMM Examples}
-
-The three risks below are the highest-exposure entries in the register and are
-worked through the full RMMM procedure to show how it operates in practice.
-
-\begin{riskcard}{RMMM Example 1 --- R1: Violation of Data Privacy \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
-\textbf{Risk description.} CampusConnect stores personal information -- email
-addresses, student and employee IDs, phone numbers, private messages, connection
-lists and profile media -- for the entire user base. Unauthorised disclosure of
-this data would harm real students and would end the university's willingness to
-endorse the platform.
-
-\medskip
-\textbf{Mitigation (before it happens).}
-\begin{itemize}[nosep]
-  \item Encrypt data in transit with TLS and encrypt sensitive fields at rest;
-  store passwords only as salted hashes. (WBS 1.3.1.1)
-  \item Apply the role-based permission matrix at the API layer, not only in the
-  interface, so that a crafted request cannot read another user's data.
-  (WBS 2.1.1.3)
-  \item Give students explicit privacy controls over which profile fields are
-  visible to whom. (WBS 2.1.2.1)
-  \item Run a scheduled security audit and penetration test before release.
-  (WBS 1.3.1.2)
-\end{itemize}
-
-\medskip
-\textbf{Monitoring.} Automated access-control tests run on every build; the audit
-log is reviewed weekly for privileged reads; the trigger indicator is any
-authorisation-failure spike or any read of a record by an account outside the
-owning role.
-
-\medskip
-\textbf{Management (if it happens).} Revoke the compromised credentials and
-invalidate all sessions immediately; isolate the affected service; identify the
-scope of exposure from the audit log; notify affected users and the department;
-patch the vulnerability and re-run the full audit before restoring the service.
-
-\medskip
-\textbf{Owner.} Security lead (Development Team).
-\end{riskcard}
-
-\begin{riskcard}{RMMM Example 2 --- R3: Server Down Under Peak Load \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
-\textbf{Risk description.} Campus traffic is not uniform. During section
-selection, registration and result publication, a large proportion of the
-student body opens the platform within the same few minutes. A single
-under-provisioned server would slow to a halt or fail outright at exactly the
-moment CampusConnect is most needed, which would permanently damage user
-confidence in it.
-
-\medskip
-\textbf{Mitigation (before it happens).}
-\begin{itemize}[nosep]
-  \item Design the services to be stateless so that horizontal scaling --
-  several small servers behind a load balancer -- is possible instead of relying
-  on one large machine. (WBS 1.1.1.1)
-  \item Cache the feed and notice queries and paginate all list endpoints so
-  that a surge does not translate into unbounded database work. (WBS 3.1.1.3)
-  \item Execute load and peak-traffic tests that simulate the registration-day
-  concurrency before release. (WBS 1.2.2.2)
-  \item Schedule high-volume official notices to publish outside the narrow
-  windows when registration traffic peaks.
-\end{itemize}
-
-\medskip
-\textbf{Monitoring.} Server response time, CPU utilisation and error rate are
-displayed on the platform health dashboard (WBS 5.2.2.1); the trigger indicator
-is median response time exceeding two seconds or error rate exceeding 1\%.
-
-\medskip
-\textbf{Management (if it happens).} Add server instances behind the load
-balancer; temporarily disable the most expensive non-essential features, such as
-the ranked feed, and fall back to a simple chronological view; display an honest
-status message rather than a blank error; after recovery, re-run the load test at
-the observed traffic level and raise the baseline capacity.
-
-\medskip
-\textbf{Owner.} DevOps / infrastructure lead (Development Team).
-\end{riskcard}
-
-\begin{riskcard}{RMMM Example 3 --- R8: Module Integration Failure \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
-\textbf{Risk description.} CampusConnect is assembled from ten interacting
-modules built in parallel by four people. If the events module and the
-notification service disagree about a payload, or the moderation module and the
-feed disagree about what "hidden" means, the platform will not crash --- it will
-quietly show wrong information, such as a notice that never reaches its audience
-or a removed post that remains visible.
-
-\medskip
-\textbf{Mitigation (before it happens).}
-\begin{itemize}[nosep]
-  \item Define and freeze the interface contract between modules during
-  architecture design, before parallel construction starts. (WBS 1.1.1.1)
-  \item Maintain an automated API and regression test suite that every merge
-  must pass. (WBS 1.2.2.1)
-  \item Integrate continuously through the CI pipeline rather than merging at
-  the end of a sprint. (WBS 1.2.1.1)
-  \item Assign a single technical lead as the arbiter of contract changes, so
-  that no interface changes without both sides being informed.
-\end{itemize}
-
-\medskip
-\textbf{Monitoring.} Build and test results on every commit; the trigger
-indicator is any failing contract test or a rise in integration-level defects
-reported during a sprint review.
-
-\medskip
-\textbf{Management (if it happens).} Revert the offending merge to restore a
-known-good build; reproduce the mismatch with a failing test; correct the
-contract on both sides and add a permanent regression test; record the incident
-in the retrospective so the contract review step is strengthened.
-
-\medskip
-\textbf{Owner.} Technical lead (Development Team).
-\end{riskcard}
-
-\section{Risk Plan Sheet}
-\label{sec:riskplan}
-
-A risk plan sheet is the consolidated list of all risks that threaten the
-project together with the strategy for mitigating each. Table~\ref{tab:riskplan}
-records the ten risks identified for UIU CampusConnect. Probability and impact
-are scored from 0 to 5 and priority is their product.
-
-\begingroup\footnotesize
-\begin{longtable}{|C{1.0cm}|L{3.55cm}|C{1.25cm}|C{1.25cm}|C{1.25cm}|L{3.4cm}|L{1.8cm}|}
-\caption{Risk plan sheet for UIU CampusConnect (probability and impact scored 0--5)}
-\label{tab:riskplan}\\
-\hline
-\rowhead \thead{\footnotesize Risk ID} & \thead{\footnotesize Risk Description} & \thead{\footnotesize Prob.} & \thead{\footnotesize Impact} & \thead{\footnotesize Priority} & \thead{\footnotesize Mitigation Strategy} & \thead{\footnotesize Owner} \\ \hline
-\endfirsthead
-\hline
-\rowhead \thead{\footnotesize Risk ID} & \thead{\footnotesize Risk Description} & \thead{\footnotesize Prob.} & \thead{\footnotesize Impact} & \thead{\footnotesize Priority} & \thead{\footnotesize Mitigation Strategy} & \thead{\footnotesize Owner} \\ \hline
-\endhead
-\hline
-\multicolumn{7}{r}{\footnotesize\itshape continued on next page}\\
-\endfoot
-\hline
-\endlastfoot
-
-\textbf{R1} &
-\textbf{Violation of data privacy.} The system stores personal information such
-as email, student/employee ID, phone number, messages and friend lists. &
-5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
-End-to-end encryption; enforce access control at the API layer; regular security
-testing and audit. &
-Security lead \\ \hline
-
-\rowcolor{lvl3Row}
-\textbf{R2} &
-\textbf{Unauthorized access.} A user gains the permissions of another role, for
-example a student publishing an official notice. &
-4 & 5 & \textcolor{riskHigh}{\textbf{20}} &
-Role-based access control with a documented permission matrix; server-side
-authorisation validation on every endpoint. &
-Developer team \\ \hline
-
-\textbf{R3} &
-\textbf{Server down.} During section selection, registration and result
-publication, many users access the server simultaneously and it fails. &
-5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
-Horizontal scaling behind a load balancer; caching and pagination; load testing
-before release. &
-DevOps engineer \\ \hline
-
-\rowcolor{lvl3Row}
-\textbf{R4} &
-\textbf{Marketplace fraud.} A user creates a fake listing or provides misleading
-information about an item. &
-3 & 4 & \textcolor{riskMed}{\textbf{12}} &
-Seller verification against university identity; reporting mechanism;
-sold-status controls and listing expiry. &
-Marketplace manager \\ \hline
-
-\textbf{R5} &
-\textbf{Fake account creation.} Someone from outside the university registers and
-enters the system. &
-4 & 4 & \textcolor{riskMed}{\textbf{16}} &
-Restrict registration to the university's official email domain with mandatory
-verification; manual review of anomalies. &
-IT admin \\ \hline
-
-\rowcolor{lvl3Row}
-\textbf{R6} &
-\textbf{Lost-and-found abuse.} Someone falsely claims that a found item belongs
-to them. &
-3 & 3 & \textcolor{riskLow}{\textbf{9}} &
-Require identifying item details before a claim is released; allow users to
-report false claims; log all claims. &
-Community manager \\ \hline
-
-\textbf{R7} &
-\textbf{User reluctance.} After the system is built, students show no interest in
-switching from existing groups. &
-3 & 3 & \textcolor{riskLow}{\textbf{9}} &
-Promote the platform before launch through clubs and class representatives;
-user-friendly design validated by sprint reviews with real students. &
-Product owner \\ \hline
-
-\rowcolor{lvl3Row}
-\textbf{R8} &
-\textbf{Module integration failure.} One module does not communicate correctly
-with another and the system produces incorrect information. &
-5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
-Clearly defined interfaces frozen at design time; automated API and regression
-testing on every merge; continuous integration. &
-Technical lead \\ \hline
-
-\textbf{R9} &
-\textbf{Scope creep.} The project has many features and the team keeps adding
-more, so the work grows beyond the available effort. &
-4 & 5 & \textcolor{riskHigh}{\textbf{20}} &
-Fixed feature baseline recorded in the Vision \& Scope chapter; formal approval
-required for any new requirement; out-of-scope list enforced. &
-Project manager \\ \hline
-
-\rowcolor{lvl3Row}
-\textbf{R10} &
-\textbf{Data loss.} The system stores a large volume of information and server
-failure could destroy it. &
-4 & 4 & \textcolor{riskMed}{\textbf{16}} &
-Scheduled automated backups with periodic restore drills; database replication;
-retention of audit logs. &
-Database administrator \\ \hline
-
-\end{longtable}
-\endgroup
-
-\section{Interpreting the Risk Profile}
-
-Four risks -- R1, R3, R8 and R9 -- carry an exposure of 20 or above and are
-therefore critical. It is worth noting what they have in common: three of them
-(R1, R3, R8) are consequences of the platform's own ambition. CampusConnect is
-valuable precisely because it centralises identity, traffic and modules, and
-centralisation is exactly what makes privacy breaches, load failures and
-integration defects damaging. The fourth, R9, is a consequence of the same
-breadth seen from the management side.
-
-This is why the mitigations for these four are not advisory notes but funded
-elements of the Work Breakdown Structure in Chapter~\ref{ch:wbs}: security
-auditing (1.3.1), load testing (1.2.2.2), automated contract testing (1.2.2.1)
-and a fixed, documented scope baseline. The remaining six risks are real but
-either lower in probability or recoverable, and are managed through monitoring
-and the standard sprint response.
+Extreme Programming was considered briefly for the same reason and set aside on
+practical grounds: its core practices -- full-time pair programming,
+test-first development on every unit, and a continuously available on-site
+customer -- assume availability that student timetables and a volunteer user base
+cannot supply. We adopt its useful, low-cost habits (continuous integration,
+automated regression tests, collective code ownership) inside Scrum rather than
+adopting XP wholesale.
 % ============================================================
 \chapter{Work Breakdown Structure}
 \label{ch:wbs}
@@ -1753,6 +1499,1131 @@ the five Level-2 modules total 100\%.
 \end{table}
 
 % ============================================================
+\chapter{Wideband Delphi Estimation}
+\label{ch:delphi}
+% ============================================================
+
+\section{What is Wideband Delphi Estimation?}
+
+Wideband Delphi is a consensus-based estimation technique. A small group of
+experienced people estimate the same work independently, the individual estimates
+are collected and displayed anonymously, the group then discusses the
+\emph{assumptions} behind the spread --- never the individual numbers --- and
+everyone re-estimates. The cycle repeats until the estimates converge into an
+acceptable range.
+
+Two properties make the technique valuable. Because the first estimate is made
+alone, it is not anchored by whoever speaks first or most loudly. And because the
+discussion is about assumptions rather than numbers, a wide spread becomes
+useful information: it reveals that two estimators were solving different
+problems, which is precisely the misunderstanding that would otherwise surface
+halfway through construction.
+
+\section{Why Wideband Delphi Suits UIU CampusConnect}
+
+The Work Breakdown Structure of Chapter~\ref{ch:wbs} allocates effort in
+\emph{percentages}, which distribute the work but do not say how large the work
+is. Wideband Delphi converts that structure into absolute effort in person-days,
+and does so in a way that suits this project specifically.
+
+\begin{itemize}
+  \item \textbf{No historical data exists.} Team 09 has never built a platform of
+  this size, so parametric or analogy-based estimation has nothing to calibrate
+  against. Expert judgement is the only available basis, and Delphi is the
+  disciplined way to combine several experts' judgement.
+  \item \textbf{The team has genuinely different specialisms.} Front-end,
+  back-end, database and testing members each see a different part of the same
+  task. Estimating separately and then reconciling captures all four views.
+  \item \textbf{It exposes hidden assumptions early.} As
+  Section~\ref{sec:convergence} shows, the widest disagreement in Round~1 was on
+  the event check-in module, and the cause was an unstated assumption about
+  whether QR handling would be written from scratch. Finding that in an
+  estimation meeting cost an hour; finding it in Sprint~5 would have cost days.
+  \item \textbf{It cross-checks the WBS.} The converged per-task estimates can be
+  converted back into percentages and compared with the WBS allocation, which is
+  done in Table~\ref{tab:crosscheck}.
+\end{itemize}
+
+\section{The Wideband Delphi Process}
+
+The process followed by Team 09 is the standard six-step cycle, iterated until
+consensus is reached.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=8mm,
+  box/.style={draw=uiuBlue,fill=lvl3Row,rounded corners=2pt,align=center,
+              font=\sffamily\scriptsize\bfseries,minimum height=8mm,text width=2.05cm,inner sep=3pt},
+  dec/.style={draw=uiuNavy,fill=lvl2Row,align=center,font=\sffamily\scriptsize\bfseries,
+              inner sep=3pt,text width=1.9cm,rounded corners=2pt},
+  ar/.style={-latex,draw=uiuNavy,line width=0.6pt}]
+\node[box] (p) {Planning};
+\node[box,below=of p] (s) {Selecting the Team};
+\node[box,below=of s] (k) {Kick-off Meeting};
+\node[box,below=of k] (i) {Individual Preparation};
+\node[box,right=15mm of i] (e) {Estimation Session};
+\node[box,above=of e] (a) {Assembling Tasks};
+\node[box,above=of a] (r) {Reviewing Results};
+\node[dec,above=8mm of r] (d) {Consensus reached?};
+\node[font=\sffamily\scriptsize\bfseries,text=uiuNavy,above=7mm of d] (end) {Final Estimate};
+\draw[ar] (p) -- (s);
+\draw[ar] (s) -- (k);
+\draw[ar] (k) -- (i);
+\draw[ar] (i) -- (e);
+\draw[ar] (e) -- (a);
+\draw[ar] (a) -- (r);
+\draw[ar] (r) -- (d);
+\draw[ar] (d) -- node[right,font=\sffamily\scriptsize] {Yes} (end);
+\draw[ar] (d.east) -- ++(1.7,0) node[midway,above,font=\sffamily\scriptsize] {No} |- (e.east);
+\end{tikzpicture}
+\caption{The Wideband Delphi cycle as executed by Team 09}
+\label{fig:delphiflow}
+\end{figure}
+
+\subsection{Step 1 --- Choosing the Team}
+
+The estimation team should contain three to seven people and should include a
+representative of every group that will do the work. Team 09 used five
+estimators; the project manager also acted as moderator.
+
+
+\begin{table}[htbp]
+\centering
+\caption{The five estimators of the CampusConnect Wideband Delphi session}
+\label{tab:experts}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|L{8.0cm}|}
+\hline
+\rowhead \thead{Ref.} & \thead{Estimator} & \thead{Perspective Represented} \\ \hline
+E1 & Sindeed Shuaib Arpon & Moderator / Project Manager --- back-end services \\ \hline
+\rowcolor{lvl3Row}
+E2 & Nafiz Iqbal Razin & Front-end and UI/UX implementation \\ \hline
+E3 & Afnan Zaman Mohammad Sajid & Database design and API integration \\ \hline
+\rowcolor{lvl3Row}
+E4 & Farzana Akter & Quality assurance, testing and documentation \\ \hline
+E5 & Invited Reviewer (senior student) & External domain expert --- built the previous departmental portal \\ \hline
+\end{tabular}
+\end{table}
+
+The fifth estimator is deliberately external to the team. A group of four people
+who have planned the project together tends to share the same blind spots;
+inviting a senior student who had already built a departmental portal gave the
+session one voice that had not been part of the earlier design discussions, and
+that voice produced several of the largest Round~1 deviations.
+
+\subsection{Step 2 --- Kick-off Meeting}
+
+The moderator opened the session by fixing three things that every estimator then
+worked to identically.
+
+\begin{keybox}
+\textbf{Goal statement.} To estimate the total development effort required to
+build UIU CampusConnect, a campus social and academic networking platform, to a
+deployable first release.
+
+\medskip
+\textbf{Unit of estimation.} Person-days of direct development effort, where one
+person-day is eight hours of focused work. Estimates measure \emph{effort}, never
+calendar time.
+
+\medskip
+\textbf{Task list.} The twelve Level-2 deliverable components of the Work
+Breakdown Structure in Chapter~\ref{ch:wbs}, so that every estimate maps directly
+onto a WBS code.
+\end{keybox}
+
+The meeting also agreed the exclusions: waiting time, holidays and examination
+weeks are calendar effects and are not estimated, and project overhead such as
+report writing and meetings is tracked separately rather than being distributed
+across the tasks.
+
+\subsection{Step 3 --- Individual Preparation}
+
+Each estimator then worked alone, producing an estimate for every task on the
+list together with the assumptions behind it. No estimator saw another's figures.
+The shared assumptions that emerged from this step are recorded in
+Table~\ref{tab:assumptions}; several of them were only written down after Round~1
+exposed a disagreement.
+
+
+\begin{table}[htbp]
+\centering
+\caption{Assumptions agreed during the estimation session}
+\label{tab:assumptions}
+\footnotesize
+\begin{tabular}{|C{1.3cm}|L{4.6cm}|L{8.0cm}|}
+\hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task} & \thead{\footnotesize Governing Assumption} \\ \hline
+1.1 & System architecture \& UI/UX design & Design system reused across modules; no bespoke iconography. \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & Free-tier CI runner; single staging environment. \\ \hline
+1.3 & Documentation, security audit \& deployment & Penetration testing performed in-house, not outsourced. \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & University e-mail verification endpoint is available. \\ \hline
+2.2 & Direct communication \& alerts & Notification engine built once and reused by all modules. \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & Ranking is rule-based; no machine-learning component. \\ \hline
+3.2 & Post interactivity \& content control & Media stored on object storage, not on the application server. \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & Section and department lists can be imported, not typed in. \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & An open-source QR library is used; only token logic is written. \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & Club committee data seeded manually for the first release. \\ \hline
+5.1 & Peer-to-peer campus services & No payment handling; marketplace is listing-only. \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & Audit log is append-only in the existing database. \\ \hline
+\end{tabular}
+\end{table}
+\clearpage
+
+\subsection{Step 4 --- The Estimation Form}
+
+Each estimator recorded their work on a standard estimation form. The
+\textbf{Est.} column holds the Round~1 figure produced during individual
+preparation; \textbf{$\Delta$1} and \textbf{$\Delta$2} record the revisions the
+estimator chose to make after the Round~1 and Round~2 discussions; and
+\textbf{Total} is the estimator's final Round~3 figure. A blank delta means the
+estimator saw no reason to move.
+
+The five completed forms are reproduced below.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation form --- Sindeed Shuaib Arpon (E1)}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|C{1.1cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|}
+\hline
+\rowhead \multicolumn{6}{|L{12.1cm}|}{\thead{\footnotesize Goal: estimate the effort to build UIU CampusConnect to a deployable first release. \quad Units: person-days}} \\ \hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task name} & \thead{\footnotesize Est.} & \thead{\footnotesize $\Delta$1} & \thead{\footnotesize $\Delta$2} & \thead{\footnotesize Total} \\ \hline
+1.1 & System architecture \& UI/UX design & 6 & $+$1 & $+$1 & \textbf{8} \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 4 & $+$1 & $+$1 & \textbf{6} \\ \hline
+1.3 & Documentation, security audit \& deployment & 3 & $+$1 & $+$1 & \textbf{5} \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 10 & $+$2 & $+$2 & \textbf{14} \\ \hline
+2.2 & Direct communication \& alerts & 11 & $+$2 & $+$1 & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 8 & $+$1 & $+$2 & \textbf{11} \\ \hline
+3.2 & Post interactivity \& content control & 10 & $+$2 & $+$1 & \textbf{13} \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 7 & $+$1 & $+$2 & \textbf{10} \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 5 & $+$2 & $+$2 & \textbf{9} \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 8 & $+$1 & $+$1 & \textbf{10} \\ \hline
+5.1 & Peer-to-peer campus services & 9 & $+$1 & $+$2 & \textbf{12} \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 9 & $+$2 & $+$2 & \textbf{13} \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total (person-days)}} & \textbf{90} & \textbf{$+$17} & \textbf{$+$18} & \textbf{125} \\ \hline
+\end{tabular}\end{table}
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation form --- Nafiz Iqbal Razin (E2)}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|C{1.1cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|}
+\hline
+\rowhead \multicolumn{6}{|L{12.1cm}|}{\thead{\footnotesize Goal: estimate the effort to build UIU CampusConnect to a deployable first release. \quad Units: person-days}} \\ \hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task name} & \thead{\footnotesize Est.} & \thead{\footnotesize $\Delta$1} & \thead{\footnotesize $\Delta$2} & \thead{\footnotesize Total} \\ \hline
+1.1 & System architecture \& UI/UX design & 10 & $-$1 & $-$1 & \textbf{8} \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 8 & $-$1 & $-$1 & \textbf{6} \\ \hline
+1.3 & Documentation, security audit \& deployment & 7 & $-$1 & $-$1 & \textbf{5} \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 18 & $-$2 & $-$1 & \textbf{15} \\ \hline
+2.2 & Direct communication \& alerts & 17 & $-$2 & $-$1 & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 14 & $-$2 & $-$1 & \textbf{11} \\ \hline
+3.2 & Post interactivity \& content control & 16 & $-$1 & $-$1 & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 12 & $-$1 & $-$1 & \textbf{10} \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 14 & $-$3 & $-$2 & \textbf{9} \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 13 & $-$2 & $-$1 & \textbf{10} \\ \hline
+5.1 & Peer-to-peer campus services & 15 & $-$1 & $-$2 & \textbf{12} \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 16 & $-$2 & $-$1 & \textbf{13} \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total (person-days)}} & \textbf{160} & \textbf{$-$19} & \textbf{$-$14} & \textbf{127} \\ \hline
+\end{tabular}\end{table}
+\clearpage
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation form --- Afnan Zaman Mohammad Sajid (E3)}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|C{1.1cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|}
+\hline
+\rowhead \multicolumn{6}{|L{12.1cm}|}{\thead{\footnotesize Goal: estimate the effort to build UIU CampusConnect to a deployable first release. \quad Units: person-days}} \\ \hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task name} & \thead{\footnotesize Est.} & \thead{\footnotesize $\Delta$1} & \thead{\footnotesize $\Delta$2} & \thead{\footnotesize Total} \\ \hline
+1.1 & System architecture \& UI/UX design & 7 & $+$1 & $-$1 & \textbf{7} \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 5 & $+$1 & $-$1 & \textbf{5} \\ \hline
+1.3 & Documentation, security audit \& deployment & 4 & $+$1 & $-$1 & \textbf{4} \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 12 & $+$1 &  & \textbf{13} \\ \hline
+2.2 & Direct communication \& alerts & 20 & $-$3 & $-$2 & \textbf{15} \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 9 & $+$1 &  & \textbf{10} \\ \hline
+3.2 & Post interactivity \& content control & 18 & $-$2 & $-$1 & \textbf{15} \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 8 & $+$1 &  & \textbf{9} \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 7 & $+$1 &  & \textbf{8} \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 9 & $+$1 & $-$1 & \textbf{9} \\ \hline
+5.1 & Peer-to-peer campus services & 10 & $+$1 &  & \textbf{11} \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 11 & $+$1 &  & \textbf{12} \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total (person-days)}} & \textbf{120} & \textbf{$+$5} & \textbf{$-$7} & \textbf{118} \\ \hline
+\end{tabular}\end{table}
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation form --- Farzana Akter (E4)}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|C{1.1cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|}
+\hline
+\rowhead \multicolumn{6}{|L{12.1cm}|}{\thead{\footnotesize Goal: estimate the effort to build UIU CampusConnect to a deployable first release. \quad Units: person-days}} \\ \hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task name} & \thead{\footnotesize Est.} & \thead{\footnotesize $\Delta$1} & \thead{\footnotesize $\Delta$2} & \thead{\footnotesize Total} \\ \hline
+1.1 & System architecture \& UI/UX design & 12 & $-$2 & $-$1 & \textbf{9} \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 9 & $-$2 &  & \textbf{7} \\ \hline
+1.3 & Documentation, security audit \& deployment & 8 & $-$2 &  & \textbf{6} \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 20 & $-$3 & $-$2 & \textbf{15} \\ \hline
+2.2 & Direct communication \& alerts & 12 & $+$1 &  & \textbf{13} \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 15 & $-$2 & $-$1 & \textbf{12} \\ \hline
+3.2 & Post interactivity \& content control & 13 &  & $+$1 & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 14 & $-$2 & $-$1 & \textbf{11} \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 16 & $-$4 & $-$2 & \textbf{10} \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 12 & $-$1 &  & \textbf{11} \\ \hline
+5.1 & Peer-to-peer campus services & 16 & $-$2 & $-$1 & \textbf{13} \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 17 & $-$2 & $-$1 & \textbf{14} \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total (person-days)}} & \textbf{164} & \textbf{$-$21} & \textbf{$-$8} & \textbf{135} \\ \hline
+\end{tabular}\end{table}
+\clearpage
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation form --- Invited Reviewer (senior student) (E5)}
+\begin{tabular}{|C{1.1cm}|L{5.0cm}|C{1.1cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|}
+\hline
+\rowhead \multicolumn{6}{|L{12.1cm}|}{\thead{\footnotesize Goal: estimate the effort to build UIU CampusConnect to a deployable first release. \quad Units: person-days}} \\ \hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task name} & \thead{\footnotesize Est.} & \thead{\footnotesize $\Delta$1} & \thead{\footnotesize $\Delta$2} & \thead{\footnotesize Total} \\ \hline
+1.1 & System architecture \& UI/UX design & 9 & $-$1 &  & \textbf{8} \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 6 &  &  & \textbf{6} \\ \hline
+1.3 & Documentation, security audit \& deployment & 5 &  &  & \textbf{5} \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 15 & $-$1 & $-$1 & \textbf{13} \\ \hline
+2.2 & Direct communication \& alerts & 14 &  &  & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 12 & $-$1 &  & \textbf{11} \\ \hline
+3.2 & Post interactivity \& content control & 15 & $-$1 &  & \textbf{14} \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 10 &  &  & \textbf{10} \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 10 & $-$1 &  & \textbf{9} \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 11 & $-$1 &  & \textbf{10} \\ \hline
+5.1 & Peer-to-peer campus services & 13 & $-$1 &  & \textbf{12} \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 14 & $-$1 &  & \textbf{13} \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total (person-days)}} & \textbf{134} & \textbf{$-$8} & \textbf{$-$1} & \textbf{125} \\ \hline
+\end{tabular}\end{table}
+\clearpage
+
+\section{Estimation Session: Three Rounds}
+
+The moderator collected the forms, plotted the totals anonymously and led the
+discussion. Three rounds were required before the group agreed that the range was
+acceptable. The tables below give every estimator's figure for every task in each
+round, together with the spread.
+
+\subsection{Round 1 --- Independent Estimates}
+
+Round~1 is the output of individual preparation: five people estimating the same
+twelve components with no discussion between them. The spread is correspondingly
+wide.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Round 1 --- independent estimates from individual preparation (person-days)}
+\label{tab:round1}
+\begin{tabular}{|C{1.05cm}|L{4.35cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.9cm}|C{0.9cm}|C{0.9cm}|}
+\hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task} & \thead{\footnotesize E1} & \thead{\footnotesize E2} & \thead{\footnotesize E3} & \thead{\footnotesize E4} & \thead{\footnotesize E5} & \thead{\footnotesize Min} & \thead{\footnotesize Max} & \thead{\footnotesize Mean} \\ \hline
+1.1 & System architecture \& UI/UX design & 6 & 10 & 7 & 12 & 9 & 6 & 12 & 8.8 \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 4 & 8 & 5 & 9 & 6 & 4 & 9 & 6.4 \\ \hline
+1.3 & Documentation, security audit \& deployment & 3 & 7 & 4 & 8 & 5 & 3 & 8 & 5.4 \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 10 & 18 & 12 & 20 & 15 & 10 & 20 & 15 \\ \hline
+2.2 & Direct communication \& alerts & 11 & 17 & 20 & 12 & 14 & 11 & 20 & 14.8 \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 8 & 14 & 9 & 15 & 12 & 8 & 15 & 11.6 \\ \hline
+3.2 & Post interactivity \& content control & 10 & 16 & 18 & 13 & 15 & 10 & 18 & 14.4 \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 7 & 12 & 8 & 14 & 10 & 7 & 14 & 10.2 \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 5 & 14 & 7 & 16 & 10 & 5 & 16 & 10.4 \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 8 & 13 & 9 & 12 & 11 & 8 & 13 & 10.6 \\ \hline
+5.1 & Peer-to-peer campus services & 9 & 15 & 10 & 16 & 13 & 9 & 16 & 12.6 \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 9 & 16 & 11 & 17 & 14 & 9 & 17 & 13.4 \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total}} & \textbf{90} & \textbf{160} & \textbf{120} & \textbf{164} & \textbf{134} & \textbf{90} & \textbf{164} & \textbf{133.6} \\ \hline
+\end{tabular}\end{table}
+
+The project totals ranged from 90 to 164 person-days --- a spread of
+74 days, or 55\% of the mean. That is far too wide to plan
+against, but the pattern of the disagreement was informative: E1 and E3 were
+consistently low and E2 and E4 consistently high, which suggested a systematic
+difference in what ``done'' meant rather than random noise. The discussion
+confirmed it --- the low estimators had assumed that testing and documentation
+were counted in task 1.3, while the high estimators had included per-module
+testing inside every task.
+
+\subsection{Round 2 --- After the First Assumption Review}
+
+With the testing boundary settled and the assumptions of
+Table~\ref{tab:assumptions} written down, every estimator re-estimated. Note that
+the moderator showed only the anonymous distribution, never who gave which
+number.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Round 2 --- estimates after the first assumption review (person-days)}
+\label{tab:round2}
+\begin{tabular}{|C{1.05cm}|L{4.35cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.9cm}|C{0.9cm}|C{0.9cm}|}
+\hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task} & \thead{\footnotesize E1} & \thead{\footnotesize E2} & \thead{\footnotesize E3} & \thead{\footnotesize E4} & \thead{\footnotesize E5} & \thead{\footnotesize Min} & \thead{\footnotesize Max} & \thead{\footnotesize Mean} \\ \hline
+1.1 & System architecture \& UI/UX design & 7 & 9 & 8 & 10 & 8 & 7 & 10 & 8.4 \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 5 & 7 & 6 & 7 & 6 & 5 & 7 & 6.2 \\ \hline
+1.3 & Documentation, security audit \& deployment & 4 & 6 & 5 & 6 & 5 & 4 & 6 & 5.2 \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 12 & 16 & 13 & 17 & 14 & 12 & 17 & 14.4 \\ \hline
+2.2 & Direct communication \& alerts & 13 & 15 & 17 & 13 & 14 & 13 & 17 & 14.4 \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 9 & 12 & 10 & 13 & 11 & 9 & 13 & 11 \\ \hline
+3.2 & Post interactivity \& content control & 12 & 15 & 16 & 13 & 14 & 12 & 16 & 14 \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 8 & 11 & 9 & 12 & 10 & 8 & 12 & 10 \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 7 & 11 & 8 & 12 & 9 & 7 & 12 & 9.4 \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 9 & 11 & 10 & 11 & 10 & 9 & 11 & 10.2 \\ \hline
+5.1 & Peer-to-peer campus services & 10 & 14 & 11 & 14 & 12 & 10 & 14 & 12.2 \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 11 & 14 & 12 & 15 & 13 & 11 & 15 & 13 \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total}} & \textbf{107} & \textbf{141} & \textbf{125} & \textbf{143} & \textbf{126} & \textbf{107} & \textbf{143} & \textbf{128.4} \\ \hline
+\end{tabular}\end{table}
+
+The spread narrowed from 74 to 36 person-days. Two tasks remained
+contentious: 2.2 (direct communication and alerts), where E3 still estimated
+real-time messaging well above the group, and 4.2 (campus events and attendance),
+which is examined in detail in Section~\ref{sec:convergence}.
+
+\subsection{Round 3 --- Convergence}
+
+The third round resolved the two remaining disagreements. E3's messaging estimate
+was accepted as partly justified --- the group raised its own figures for 2.2
+rather than E3 lowering theirs --- and the QR check-in assumption was settled.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Round 3 --- converged estimates accepted as the project baseline (person-days)}
+\label{tab:round3}
+\begin{tabular}{|C{1.05cm}|L{4.35cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.85cm}|C{0.9cm}|C{0.9cm}|C{0.9cm}|}
+\hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task} & \thead{\footnotesize E1} & \thead{\footnotesize E2} & \thead{\footnotesize E3} & \thead{\footnotesize E4} & \thead{\footnotesize E5} & \thead{\footnotesize Min} & \thead{\footnotesize Max} & \thead{\footnotesize Mean} \\ \hline
+1.1 & System architecture \& UI/UX design & 8 & 8 & 7 & 9 & 8 & 7 & 9 & 8 \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 6 & 6 & 5 & 7 & 6 & 5 & 7 & 6 \\ \hline
+1.3 & Documentation, security audit \& deployment & 5 & 5 & 4 & 6 & 5 & 4 & 6 & 5 \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 14 & 15 & 13 & 15 & 13 & 13 & 15 & 14 \\ \hline
+2.2 & Direct communication \& alerts & 14 & 14 & 15 & 13 & 14 & 13 & 15 & 14 \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 11 & 11 & 10 & 12 & 11 & 10 & 12 & 11 \\ \hline
+3.2 & Post interactivity \& content control & 13 & 14 & 15 & 14 & 14 & 13 & 15 & 14 \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 10 & 10 & 9 & 11 & 10 & 9 & 11 & 10 \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 9 & 9 & 8 & 10 & 9 & 8 & 10 & 9 \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 10 & 10 & 9 & 11 & 10 & 9 & 11 & 10 \\ \hline
+5.1 & Peer-to-peer campus services & 12 & 12 & 11 & 13 & 12 & 11 & 13 & 12 \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 13 & 13 & 12 & 14 & 13 & 12 & 14 & 13 \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total}} & \textbf{125} & \textbf{127} & \textbf{118} & \textbf{135} & \textbf{125} & \textbf{118} & \textbf{135} & \textbf{126} \\ \hline
+\end{tabular}\end{table}
+
+At this point no estimator wished to move further and the group agreed that the
+remaining range of 17 person-days (13\% of the mean)
+was acceptable for planning. Round~3 is therefore the accepted baseline.
+
+
+\section{Convergence Analysis}
+\label{sec:convergence}
+
+Table~\ref{tab:convergence} summarises how the project total behaved across the
+three rounds, and Figure~\ref{fig:convtotal} plots the same data in the form the
+moderator drew on the whiteboard at the start of each round.
+
+
+\begin{table}[htbp]
+\centering
+\caption{Convergence of the project total across three rounds}
+\label{tab:convergence}
+\begin{tabular}{|C{1.8cm}|C{1.8cm}|C{1.8cm}|C{1.8cm}|C{2.4cm}|C{3.0cm}|}
+\hline
+\rowhead \thead{Round} & \thead{Minimum} & \thead{Maximum} & \thead{Range} & \thead{Mean} & \thead{Spread (\% of mean)} \\ \hline
+Round 1 & 90 & 164 & 74 & 133.6 & 55.4\% \\ \hline
+\rowcolor{lvl3Row}
+Round 2 & 107 & 143 & 36 & 128.4 & 28.0\% \\ \hline
+Round 3 & 118 & 135 & 17 & 126 & 13.5\% \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[lineGrey,line width=0.6pt] (0,0.0) -- (13.00,0.0);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,0.0) {Round 1};
+\node[font=\bfseries\small,text=uiuBlue] at (1.444,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (11.556,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (5.778,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (12.133,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (7.8,0.20) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,1.35) -- (13.00,1.35);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,1.35) {Round 2};
+\node[font=\bfseries\small,text=uiuBlue] at (3.9,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (8.811,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.5,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (9.1,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.644,1.55) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,2.7) -- (13.00,2.7);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,2.7) {Round 3};
+\node[font=\bfseries\small,text=uiuBlue] at (6.5,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.789,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (5.489,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (7.944,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.5,3.12) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,-0.75) -- (13.00,-0.75);
+\draw[lineGrey] (0.000,-0.75) -- (0.000,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (0.000,-0.89) {80};
+\draw[lineGrey] (1.444,-0.75) -- (1.444,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (1.444,-0.89) {90};
+\draw[lineGrey] (2.889,-0.75) -- (2.889,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (2.889,-0.89) {100};
+\draw[lineGrey] (4.333,-0.75) -- (4.333,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (4.333,-0.89) {110};
+\draw[lineGrey] (5.778,-0.75) -- (5.778,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (5.778,-0.89) {120};
+\draw[lineGrey] (7.222,-0.75) -- (7.222,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (7.222,-0.89) {130};
+\draw[lineGrey] (8.667,-0.75) -- (8.667,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (8.667,-0.89) {140};
+\draw[lineGrey] (10.111,-0.75) -- (10.111,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (10.111,-0.89) {150};
+\draw[lineGrey] (11.556,-0.75) -- (11.556,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (11.556,-0.89) {160};
+\draw[lineGrey] (13.000,-0.75) -- (13.000,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (13.000,-0.89) {170};
+\node[font=\sffamily\scriptsize\itshape,anchor=north] at (6.50,-1.37) {person-days};
+\end{tikzpicture}
+\caption{Whiteboard plot of the project totals. Each $\times$ is one estimator; the
+distribution tightens with every round.}
+\label{fig:convtotal}
+\end{figure}
+
+The range fell from 74 person-days to 36 and then to 17, while the mean moved only from 133.6 to 126 person-days.
+That combination --- a collapsing range around a stable centre --- is the signature
+of a healthy Delphi session. A mean that drifts steadily in one direction instead
+would indicate that the group was being anchored rather than reaching agreement.
+
+
+\section{Feature-Level Convergence: 4.2 Campus Events \& Attendance}
+
+The project total hides the most instructive part of the session. Task~4.2 ---
+event publishing, registration and QR/token check-in --- produced the widest
+disagreement of Round~1 and is worked through here in full, because it shows what
+the technique is actually for.
+
+\begin{table}[htbp]\centering
+\caption{Three-round estimation of WBS 4.2 --- Campus Events \& Attendance (person-days)}
+\label{tab:feature42}
+\begin{tabular}{|L{1.9cm}|C{1.0cm}|C{1.0cm}|C{1.0cm}|C{1.0cm}|C{1.0cm}|C{1.1cm}|C{1.1cm}|C{1.2cm}|C{1.2cm}|}
+\hline
+\rowhead \thead{Round} & \thead{E1} & \thead{E2} & \thead{E3} & \thead{E4} & \thead{E5} & \thead{Min} & \thead{Max} & \thead{Range} & \thead{Mean} \\ \hline
+Round 1 & 5 & 14 & 7 & 16 & 10 & 5 & 16 & 11 & 10.4 \\ \hline
+\rowcolor{lvl3Row}
+Round 2 & 7 & 11 & 8 & 12 & 9 & 7 & 12 & 5 & 9.4 \\ \hline
+Round 3 & 9 & 9 & 8 & 10 & 9 & 8 & 10 & 2 & 9 \\ \hline
+\end{tabular}\end{table}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[lineGrey,line width=0.6pt] (0,0.0) -- (12.00,0.0);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,0.0) {Round 1};
+\node[font=\bfseries\small,text=uiuBlue] at (0.857,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (8.571,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (2.571,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (10.286,0.20) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (5.143,0.20) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,1.35) -- (12.00,1.35);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,1.35) {Round 2};
+\node[font=\bfseries\small,text=uiuBlue] at (2.571,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.0,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (3.429,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (6.857,1.55) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (4.286,1.55) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,2.7) -- (12.00,2.7);
+\node[anchor=east,font=\sffamily\scriptsize,text=uiuNavy] at (-0.15,2.7) {Round 3};
+\node[font=\bfseries\small,text=uiuBlue] at (4.286,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (4.286,3.12) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (3.429,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (5.143,2.90) {$\times$};
+\node[font=\bfseries\small,text=uiuBlue] at (4.286,3.34) {$\times$};
+\draw[lineGrey,line width=0.6pt] (0,-0.75) -- (12.00,-0.75);
+\draw[lineGrey] (0.000,-0.75) -- (0.000,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (0.000,-0.89) {4};
+\draw[lineGrey] (1.714,-0.75) -- (1.714,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (1.714,-0.89) {6};
+\draw[lineGrey] (3.429,-0.75) -- (3.429,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (3.429,-0.89) {8};
+\draw[lineGrey] (5.143,-0.75) -- (5.143,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (5.143,-0.89) {10};
+\draw[lineGrey] (6.857,-0.75) -- (6.857,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (6.857,-0.89) {12};
+\draw[lineGrey] (8.571,-0.75) -- (8.571,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (8.571,-0.89) {14};
+\draw[lineGrey] (10.286,-0.75) -- (10.286,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (10.286,-0.89) {16};
+\draw[lineGrey] (12.000,-0.75) -- (12.000,-0.87);
+\node[font=\sffamily\scriptsize,anchor=north] at (12.000,-0.89) {18};
+\node[font=\sffamily\scriptsize\itshape,anchor=north] at (6.00,-1.37) {person-days};
+\end{tikzpicture}
+\caption{Estimation-session convergence for WBS 4.2, Campus Events \& Attendance}
+\label{fig:conv42}
+\end{figure}
+
+\subsection*{What happened in each round}
+
+\textbf{Round 1 --- range 11 days (5 to 16).} The two extremes were not
+carelessness; they were two different projects. E1, estimating 5 days, assumed
+that an open-source QR library would handle generation and scanning, leaving only
+the registration records and a token field to write. E4, estimating 16 days,
+assumed the team would implement token generation, signing and scan validation
+itself, and had also included the post-event gallery and organiser reporting in
+the same task. Neither assumption was written down before the session.
+
+\medskip
+\textbf{Round 2 --- range 5 days (7 to 12).} The moderator recorded the agreed
+assumption --- \emph{an open-source QR library is used; only the token issue and
+validation logic is written} --- and confirmed with reference to the WBS that
+4.2.1.3 (post-event gallery) is a separate work package inside the same
+component, so it must be counted, but only once. Both extremes moved
+substantially: E1 rose because the gallery was now inside the boundary, E4 fell
+because the library was now assumed. The remaining gap was about capacity and
+waitlist handling, which E2 and E4 considered more intricate than the others.
+
+\medskip
+\textbf{Round 3 --- range 2 days (8 to 10).} The waitlist question was resolved by
+agreeing that promotion from the waitlist is automatic and requires no
+administrator screen. With that settled, all five estimates fell within two days
+of each other and the group accepted a consensus of 9 person-days.
+
+\begin{keybox}
+\textbf{Why this matters.} The disagreement was never really about effort; it was
+about an unwritten assumption. The Delphi session surfaced it in the second week
+of planning, at the cost of about twenty minutes of discussion. Had it survived
+until Sprint~5, one member would have started writing a QR token library while
+another expected the module to be nearly complete --- a rework cost of several
+days, and precisely the kind of silent divergence recorded as risk R8 in
+Chapter~\ref{ch:risk}.
+\end{keybox}
+
+
+\section{Assembling the Tasks}
+
+After Round~3 the moderator compiled the master estimate. Following standard
+practice the sheet records a best case (the sum of the lowest Round-3 estimate for
+each task), a worst case (the sum of the highest), and the expected value (the
+sum of the means), so that the plan carries its own uncertainty rather than
+pretending to a single number.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Master estimate compiled from Round 3 (person-days)}
+\label{tab:master}
+\begin{tabular}{|C{1.2cm}|L{5.6cm}|C{1.7cm}|C{1.7cm}|C{1.9cm}|C{1.9cm}|}
+\hline
+\rowhead \thead{\footnotesize WBS} & \thead{\footnotesize Task} & \thead{\footnotesize Best case} & \thead{\footnotesize Worst case} & \thead{\footnotesize Expected} & \thead{\footnotesize Expected (hours)} \\ \hline
+1.1 & System architecture \& UI/UX design & 7 & 9 & 8 & 64 \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 5 & 7 & 6 & 48 \\ \hline
+1.3 & Documentation, security audit \& deployment & 4 & 6 & 5 & 40 \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 13 & 15 & 14 & 112 \\ \hline
+2.2 & Direct communication \& alerts & 13 & 15 & 14 & 112 \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 10 & 12 & 11 & 88 \\ \hline
+3.2 & Post interactivity \& content control & 13 & 15 & 14 & 112 \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 9 & 11 & 10 & 80 \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 8 & 10 & 9 & 72 \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 9 & 11 & 10 & 80 \\ \hline
+5.1 & Peer-to-peer campus services & 11 & 13 & 12 & 96 \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 12 & 14 & 13 & 104 \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Project total}} & \textbf{114} & \textbf{138} & \textbf{126} & \textbf{1008} \\ \hline
+\end{tabular}\end{table}
+
+The consensus estimate is therefore \textbf{126 person-days}, or
+approximately \textbf{1008 person-hours}, with a planning band of
+114 to 138 person-days. Distributed across four team members this is about
+31.5 working days each, which fits a single semester provided the sprint
+roadmap of Section~\ref{sec:roadmap} is followed and the out-of-scope list of
+Chapter~\ref{ch:vision} is enforced.
+
+
+\section{Reviewing the Results}
+
+The final step is the review meeting, in which the compiled estimate is checked
+against what the team already believed. Because the WBS allocated effort as
+percentages and the Delphi session produced absolute days, the two can be
+compared directly --- and disagreement between them would mean that one of the two
+is wrong.
+
+\begin{table}[htbp]\centering
+\caption{Cross-check: Delphi consensus against the WBS effort allocation}
+\label{tab:crosscheck}
+\begin{tabular}{|C{1.4cm}|L{5.8cm}|C{2.2cm}|C{2.2cm}|C{2.0cm}|}
+\hline
+\rowhead \thead{WBS} & \thead{Task} & \thead{Delphi (days)} & \thead{Delphi share} & \thead{WBS share} \\ \hline
+1.1 & System architecture \& UI/UX design & 8 & 6.3\% & 6\% \\ \hline
+\rowcolor{lvl3Row}
+1.2 & Build, CI/CD pipeline \& integration testing & 6 & 4.8\% & 5\% \\ \hline
+1.3 & Documentation, security audit \& deployment & 5 & 4.0\% & 4\% \\ \hline
+\rowcolor{lvl3Row}
+2.1 & Authentication \& profile management & 14 & 11.1\% & 11\% \\ \hline
+2.2 & Direct communication \& alerts & 14 & 11.1\% & 11\% \\ \hline
+\rowcolor{lvl3Row}
+3.1 & Feed engine \& discovery & 11 & 8.7\% & 9\% \\ \hline
+3.2 & Post interactivity \& content control & 14 & 11.1\% & 11\% \\ \hline
+\rowcolor{lvl3Row}
+4.1 & Notices \& announcements & 10 & 7.9\% & 8\% \\ \hline
+4.2 & Campus events \& attendance (QR check-in) & 9 & 7.1\% & 7\% \\ \hline
+\rowcolor{lvl3Row}
+4.3 & Clubs \& community groups & 10 & 7.9\% & 8\% \\ \hline
+5.1 & Peer-to-peer campus services & 12 & 9.5\% & 10\% \\ \hline
+\rowcolor{lvl3Row}
+5.2 & Administration \& platform governance & 13 & 10.3\% & 10\% \\ \hline
+\rowcolor{lvl1Row}
+\multicolumn{2}{|r|}{\textbf{Total}} & \textbf{126} & \textbf{100.0\%} & \textbf{100\%} \\ \hline
+\end{tabular}\end{table}
+
+No component deviates from its WBS allocation by more than
+0.5~percentage points. The two estimates were produced by different
+methods --- one by top-down proportional allocation during decomposition, the
+other by bottom-up expert consensus --- so their agreement is meaningful
+corroboration rather than a tautology. The Delphi result is accepted as the
+effort baseline for the project, and it feeds directly into three later decisions:
+
+\begin{itemize}
+  \item \textbf{Sprint sizing.} With 126 person-days across seven sprints, a
+  sprint carries roughly 18 person-days of work, which is the capacity check
+  applied at every sprint planning session in Chapter~\ref{ch:method}.
+  \item \textbf{The 40-hour rule.} 1008 person-hours spread over 67 Level-4
+  work packages averages about 15 hours per package, confirming that the
+  decomposition in Chapter~\ref{ch:wbs} reached the intended 8--40 hour
+  granularity.
+  \item \textbf{Schedule risk.} The gap between the best case (114 days) and
+  the worst case (138 days) is 24 person-days, roughly 19\% of the
+  baseline. That figure is the quantitative basis for the schedule contingency
+  held against risk R9 in Chapter~\ref{ch:risk}.
+\end{itemize}
+
+\section{Limitations of the Estimate}
+
+Two honest qualifications belong with any Delphi result. First, consensus is not
+correctness: five people can agree and still be wrong together, particularly when
+four of them share the same limited experience --- which is exactly why an
+external estimator was invited. Second, the estimate is only as good as its
+assumptions, so it is valid only while Table~\ref{tab:assumptions} holds. If the
+university e-mail verification endpoint turns out to be unavailable, or if payment
+handling is added to the marketplace, the affected tasks must be re-estimated
+rather than absorbed silently. The baseline is therefore re-reviewed at every
+sprint retrospective against the effort actually recorded.
+
+% ============================================================
+\chapter{Risk Management and RMMM}
+\label{ch:risk}
+% ============================================================
+
+\section{The Concept of Risk in this Project}
+
+A risk is not a problem yet; it is a possibility of a future problem. Risk
+analysis and management are the actions a software team takes to understand and
+control that uncertainty before it becomes damage. For CampusConnect the
+distinction matters practically: the platform stores personal data for the
+entire student body, carries official university communication and will face its
+heaviest load precisely on the days that matter most -- registration, section
+selection and result publication. Discovering these problems in production would
+be far more expensive than planning for them now.
+
+Every risk in this project is characterised by two quantities, each scored from
+0 to 5:
+
+\begin{itemize}
+  \item \textbf{Probability} -- how likely the risk is to occur during the
+  project or in early operation.
+  \item \textbf{Impact} -- the severity of the consequence for users, data or
+  the schedule if it does occur.
+\end{itemize}
+
+Their product is the \textbf{risk exposure}, and it is the number the team uses
+to decide where to spend limited effort. Exposure of 20 or above is treated as
+critical and must have an active mitigation in the current sprint; 10--19 is
+significant and is scheduled; below 10 is monitored.
+
+\section{Risk Categories in UIU CampusConnect}
+
+\begin{table}[htbp]
+\centering
+\caption{Risk categories and concrete CampusConnect examples}
+\label{tab:riskcat}
+\begin{tabular}{|L{2.7cm}|L{4.0cm}|L{7.7cm}|}
+\hline
+\rowhead \thead{Category} & \thead{Definition} & \thead{Examples in CampusConnect} \\ \hline
+\textbf{Technical risk} &
+Arising from technology, tools and system design. &
+The notification service fails to deliver under load; a module's API contract
+changes and breaks its consumers; the server goes down when the whole batch
+opens the results notice at once. \\ \hline
+\rowcolor{lvl3Row}
+\textbf{Project risk} &
+Arising from planning, scheduling and resource allocation. &
+A four-member team loses a member to illness mid-sprint; the semester deadline
+leaves no slack; the backlog keeps growing as reviewers request new features. \\ \hline
+\textbf{Business risk} &
+Threatening the value and adoption of the product. &
+Students continue to use existing Facebook groups and never adopt the platform;
+the university declines to endorse the official notice board, removing its
+authority. \\ \hline
+\rowcolor{lvl3Row}
+\textbf{External risk} &
+Originating outside the team's control. &
+A change in data-protection expectations forces rework of how personal data is
+stored; hosting provider outage; campus closure disrupting user testing. \\ \hline
+\end{tabular}
+\end{table}
+
+\section{The RMMM Strategy for UIU CampusConnect}
+
+RMMM -- Risk Mitigation, Monitoring and Management -- is the structured plan
+through which the team handles risk across the project lifecycle. Rather than
+restating the theory, this section describes the procedure the CampusConnect
+team actually follows.
+
+\subsection{Risk Mitigation: acting before the risk occurs}
+
+Mitigation is the set of actions taken in advance to reduce either the
+probability or the impact of a risk. In this project mitigation is not a
+separate phase; it is embedded in the sprint cycle.
+
+\begin{enumerate}
+  \item \textbf{Identification.} At every sprint planning session the team asks
+  what could go wrong with the work packages selected for that sprint. Anything
+  raised is written into the risk register with an owner.
+  \item \textbf{Analysis.} Each risk is scored for probability and impact on the
+  0--5 scale and its exposure computed. This is what produces the risk plan
+  sheet in Section~\ref{sec:riskplan}.
+  \item \textbf{Preventive design.} Risks with exposure of 20 or above generate
+  concrete engineering work packages in the WBS. Data-privacy risk is why
+  encryption and access-control auditing exist as WBS 1.3.1.1; peak-load risk is
+  why load testing exists as WBS 1.2.2.2; integration risk is why the automated
+  API test suite exists as WBS 1.2.2.1. Mitigation is therefore funded and
+  scheduled, not merely intended.
+  \item \textbf{Assignment.} Every risk has exactly one named owner among the
+  four team members, who is responsible for reporting its status.
+\end{enumerate}
+
+\subsection{Risk Monitoring: watching while the project runs}
+
+Monitoring is the continuous process of tracking known risks and detecting new
+ones. The team's monitoring mechanisms are deliberately lightweight so that they
+are actually performed.
+
+\begin{itemize}
+  \item The risk register is reviewed at the start of every sprint planning and
+  at every retrospective; probability and impact scores are revised in the light
+  of what the sprint revealed.
+  \item Each critical risk carries a \emph{trigger indicator} -- an observable
+  signal that the risk is materialising. Rising API error rates in the staging
+  logs indicate the integration risk; response times climbing above two seconds
+  during load tests indicate the peak-load risk; a falling count of daily active
+  test users indicates the adoption risk.
+  \item The daily stand-up is an explicit opportunity to raise a newly noticed
+  risk, and anything raised there enters the register the same day.
+  \item Sprint velocity is tracked against the WBS effort baseline; a persistent
+  shortfall is itself the trigger indicator for the schedule risk.
+\end{itemize}
+
+\subsection{Risk Management: responding when the risk occurs}
+
+Management covers the actions taken once a risk has actually materialised.
+
+\begin{enumerate}
+  \item \textbf{Execute the contingency plan} recorded against that risk, rather
+  than improvising under pressure.
+  \item \textbf{Contain the damage} -- restore service, revoke access, roll back
+  the release or restore from backup, whichever the plan specifies.
+  \item \textbf{Communicate} to affected users and to the supervising faculty
+  member, with an honest statement of what happened and what is being done.
+  \item \textbf{Review and improve} at the next retrospective, updating the
+  mitigation so that the same failure cannot recur, and re-scoring the risk.
+\end{enumerate}
+
+\section{Worked RMMM Examples}
+
+The three risks below are the highest-exposure entries in the register and are
+worked through the full RMMM procedure to show how it operates in practice.
+
+\begin{riskcard}{RMMM Example 1 --- R1: Violation of Data Privacy \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
+\textbf{Risk description.} CampusConnect stores personal information -- email
+addresses, student and employee IDs, phone numbers, private messages, connection
+lists and profile media -- for the entire user base. Unauthorised disclosure of
+this data would harm real students and would end the university's willingness to
+endorse the platform.
+
+\medskip
+\textbf{Mitigation (before it happens).}
+\begin{itemize}[nosep]
+  \item Encrypt data in transit with TLS and encrypt sensitive fields at rest;
+  store passwords only as salted hashes. (WBS 1.3.1.1)
+  \item Apply the role-based permission matrix at the API layer, not only in the
+  interface, so that a crafted request cannot read another user's data.
+  (WBS 2.1.1.3)
+  \item Give students explicit privacy controls over which profile fields are
+  visible to whom. (WBS 2.1.2.1)
+  \item Run a scheduled security audit and penetration test before release.
+  (WBS 1.3.1.2)
+\end{itemize}
+
+\medskip
+\textbf{Monitoring.} Automated access-control tests run on every build; the audit
+log is reviewed weekly for privileged reads; the trigger indicator is any
+authorisation-failure spike or any read of a record by an account outside the
+owning role.
+
+\medskip
+\textbf{Management (if it happens).} Revoke the compromised credentials and
+invalidate all sessions immediately; isolate the affected service; identify the
+scope of exposure from the audit log; notify affected users and the department;
+patch the vulnerability and re-run the full audit before restoring the service.
+
+\medskip
+\textbf{Owner.} Security lead (Development Team).
+\end{riskcard}
+
+\begin{riskcard}{RMMM Example 2 --- R3: Server Down Under Peak Load \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
+\textbf{Risk description.} Campus traffic is not uniform. During section
+selection, registration and result publication, a large proportion of the
+student body opens the platform within the same few minutes. A single
+under-provisioned server would slow to a halt or fail outright at exactly the
+moment CampusConnect is most needed, which would permanently damage user
+confidence in it.
+
+\medskip
+\textbf{Mitigation (before it happens).}
+\begin{itemize}[nosep]
+  \item Design the services to be stateless so that horizontal scaling --
+  several small servers behind a load balancer -- is possible instead of relying
+  on one large machine. (WBS 1.1.1.1)
+  \item Cache the feed and notice queries and paginate all list endpoints so
+  that a surge does not translate into unbounded database work. (WBS 3.1.1.3)
+  \item Execute load and peak-traffic tests that simulate the registration-day
+  concurrency before release. (WBS 1.2.2.2)
+  \item Schedule high-volume official notices to publish outside the narrow
+  windows when registration traffic peaks.
+\end{itemize}
+
+\medskip
+\textbf{Monitoring.} Server response time, CPU utilisation and error rate are
+displayed on the platform health dashboard (WBS 5.2.2.1); the trigger indicator
+is median response time exceeding two seconds or error rate exceeding 1\%.
+
+\medskip
+\textbf{Management (if it happens).} Add server instances behind the load
+balancer; temporarily disable the most expensive non-essential features, such as
+the ranked feed, and fall back to a simple chronological view; display an honest
+status message rather than a blank error; after recovery, re-run the load test at
+the observed traffic level and raise the baseline capacity.
+
+\medskip
+\textbf{Owner.} DevOps / infrastructure lead (Development Team).
+\end{riskcard}
+
+\begin{riskcard}{RMMM Example 3 --- R8: Module Integration Failure \hfill Exposure 5 $\times$ 5 = 25 (Critical)}
+\textbf{Risk description.} CampusConnect is assembled from ten interacting
+modules built in parallel by four people. If the events module and the
+notification service disagree about a payload, or the moderation module and the
+feed disagree about what "hidden" means, the platform will not crash --- it will
+quietly show wrong information, such as a notice that never reaches its audience
+or a removed post that remains visible.
+
+\medskip
+\textbf{Mitigation (before it happens).}
+\begin{itemize}[nosep]
+  \item Define and freeze the interface contract between modules during
+  architecture design, before parallel construction starts. (WBS 1.1.1.1)
+  \item Maintain an automated API and regression test suite that every merge
+  must pass. (WBS 1.2.2.1)
+  \item Integrate continuously through the CI pipeline rather than merging at
+  the end of a sprint. (WBS 1.2.1.1)
+  \item Assign a single technical lead as the arbiter of contract changes, so
+  that no interface changes without both sides being informed.
+\end{itemize}
+
+\medskip
+\textbf{Monitoring.} Build and test results on every commit; the trigger
+indicator is any failing contract test or a rise in integration-level defects
+reported during a sprint review.
+
+\medskip
+\textbf{Management (if it happens).} Revert the offending merge to restore a
+known-good build; reproduce the mismatch with a failing test; correct the
+contract on both sides and add a permanent regression test; record the incident
+in the retrospective so the contract review step is strengthened.
+
+\medskip
+\textbf{Owner.} Technical lead (Development Team).
+\end{riskcard}
+
+\section{Risk Plan Sheet}
+\label{sec:riskplan}
+
+A risk plan sheet is the consolidated list of all risks that threaten the
+project together with the strategy for mitigating each. Table~\ref{tab:riskplan}
+records the ten risks identified for UIU CampusConnect. Probability and impact
+are scored from 0 to 5 and priority is their product.
+
+\begingroup\footnotesize
+\begin{longtable}{|C{1.0cm}|L{3.55cm}|C{1.25cm}|C{1.25cm}|C{1.25cm}|L{3.4cm}|L{1.8cm}|}
+\caption{Risk plan sheet for UIU CampusConnect (probability and impact scored 0--5)}
+\label{tab:riskplan}\\
+\hline
+\rowhead \thead{\footnotesize Risk ID} & \thead{\footnotesize Risk Description} & \thead{\footnotesize Prob.} & \thead{\footnotesize Impact} & \thead{\footnotesize Priority} & \thead{\footnotesize Mitigation Strategy} & \thead{\footnotesize Owner} \\ \hline
+\endfirsthead
+\hline
+\rowhead \thead{\footnotesize Risk ID} & \thead{\footnotesize Risk Description} & \thead{\footnotesize Prob.} & \thead{\footnotesize Impact} & \thead{\footnotesize Priority} & \thead{\footnotesize Mitigation Strategy} & \thead{\footnotesize Owner} \\ \hline
+\endhead
+\hline
+\multicolumn{7}{r}{\footnotesize\itshape continued on next page}\\
+\endfoot
+\hline
+\endlastfoot
+
+\textbf{R1} &
+\textbf{Violation of data privacy.} The system stores personal information such
+as email, student/employee ID, phone number, messages and friend lists. &
+5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
+End-to-end encryption; enforce access control at the API layer; regular security
+testing and audit. &
+Security lead \\ \hline
+
+\rowcolor{lvl3Row}
+\textbf{R2} &
+\textbf{Unauthorized access.} A user gains the permissions of another role, for
+example a student publishing an official notice. &
+4 & 5 & \textcolor{riskHigh}{\textbf{20}} &
+Role-based access control with a documented permission matrix; server-side
+authorisation validation on every endpoint. &
+Developer team \\ \hline
+
+\textbf{R3} &
+\textbf{Server down.} During section selection, registration and result
+publication, many users access the server simultaneously and it fails. &
+5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
+Horizontal scaling behind a load balancer; caching and pagination; load testing
+before release. &
+DevOps engineer \\ \hline
+
+\rowcolor{lvl3Row}
+\textbf{R4} &
+\textbf{Marketplace fraud.} A user creates a fake listing or provides misleading
+information about an item. &
+3 & 4 & \textcolor{riskMed}{\textbf{12}} &
+Seller verification against university identity; reporting mechanism;
+sold-status controls and listing expiry. &
+Marketplace manager \\ \hline
+
+\textbf{R5} &
+\textbf{Fake account creation.} Someone from outside the university registers and
+enters the system. &
+4 & 4 & \textcolor{riskMed}{\textbf{16}} &
+Restrict registration to the university's official email domain with mandatory
+verification; manual review of anomalies. &
+IT admin \\ \hline
+
+\rowcolor{lvl3Row}
+\textbf{R6} &
+\textbf{Lost-and-found abuse.} Someone falsely claims that a found item belongs
+to them. &
+3 & 3 & \textcolor{riskLow}{\textbf{9}} &
+Require identifying item details before a claim is released; allow users to
+report false claims; log all claims. &
+Community manager \\ \hline
+
+\textbf{R7} &
+\textbf{User reluctance.} After the system is built, students show no interest in
+switching from existing groups. &
+3 & 3 & \textcolor{riskLow}{\textbf{9}} &
+Promote the platform before launch through clubs and class representatives;
+user-friendly design validated by sprint reviews with real students. &
+Product owner \\ \hline
+
+\rowcolor{lvl3Row}
+\textbf{R8} &
+\textbf{Module integration failure.} One module does not communicate correctly
+with another and the system produces incorrect information. &
+5 & 5 & \textcolor{riskHigh}{\textbf{25}} &
+Clearly defined interfaces frozen at design time; automated API and regression
+testing on every merge; continuous integration. &
+Technical lead \\ \hline
+
+\textbf{R9} &
+\textbf{Scope creep.} The project has many features and the team keeps adding
+more, so the work grows beyond the available effort. &
+4 & 5 & \textcolor{riskHigh}{\textbf{20}} &
+Fixed feature baseline recorded in the Vision \& Scope chapter; formal approval
+required for any new requirement; out-of-scope list enforced. &
+Project manager \\ \hline
+
+\rowcolor{lvl3Row}
+\textbf{R10} &
+\textbf{Data loss.} The system stores a large volume of information and server
+failure could destroy it. &
+4 & 4 & \textcolor{riskMed}{\textbf{16}} &
+Scheduled automated backups with periodic restore drills; database replication;
+retention of audit logs. &
+Database administrator \\ \hline
+
+\end{longtable}
+\endgroup
+
+\section{Interpreting the Risk Profile}
+
+Four risks -- R1, R3, R8 and R9 -- carry an exposure of 20 or above and are
+therefore critical. It is worth noting what they have in common: three of them
+(R1, R3, R8) are consequences of the platform's own ambition. CampusConnect is
+valuable precisely because it centralises identity, traffic and modules, and
+centralisation is exactly what makes privacy breaches, load failures and
+integration defects damaging. The fourth, R9, is a consequence of the same
+breadth seen from the management side.
+
+This is why the mitigations for these four are not advisory notes but funded
+elements of the Work Breakdown Structure in Chapter~\ref{ch:wbs}: security
+auditing (1.3.1), load testing (1.2.2.2), automated contract testing (1.2.2.1)
+and a fixed, documented scope baseline. The remaining six risks are real but
+either lower in probability or recoverable, and are managed through monitoring
+and the standard sprint response.
+% ============================================================
 \chapter{Conclusion}
 % ============================================================
 
@@ -1760,11 +2631,35 @@ This report has set out the management baseline for UIU CampusConnect. The Visio
 and Scope chapter fixed what the platform is for and, equally importantly, what
 it is not: ten functional areas were admitted into the delivery boundary with a
 stated reason for each, and five capabilities were formally excluded so that the
-team has written grounds for refusing them later. The methodology chapter
-compared the candidate process models against the three defining characteristics
-of this project -- moving requirements, modular but interdependent construction,
-and a small fixed effort budget -- and selected Agile Scrum, mapping its
-ceremonies onto a seven-sprint semester roadmap.
+team has written grounds for refusing them later.
+
+The methodology chapter compared the candidate process models against the three
+defining characteristics of this project -- moving requirements, modular but
+interdependent construction, and a small fixed effort budget -- and selected Agile
+Scrum, mapping its ceremonies onto a seven-sprint semester roadmap. It also stated
+plainly why each alternative was set aside: Waterfall because the requirements are
+not knowable in advance and its testing comes too late for our critical risks;
+Prototype because it is an elicitation technique rather than a process and would
+accelerate scope creep; Spiral because its risk ceremony is disproportionate to a
+recoverable student project, though its risk discipline was retained inside the
+sprint cycle; and unstructured Agile because it answers none of the ownership,
+cadence and scope-control questions that Scrum answers explicitly.
+
+The Work Breakdown Structure decomposed the entire scope into four levels, from
+the platform down to sixty-seven terminal work packages, each sized for a
+two-week sprint and each assignable to a single owner. The effort allocations
+were corrected where the earlier draft did not balance, and the roll-up was
+verified to 100\% at every node.
+
+The Wideband Delphi chapter turned those percentages into absolute effort. Five
+estimators -- the four team members plus an external reviewer -- estimated the
+twelve Level-2 components independently and then reconciled across three rounds.
+The spread of the project total fell from 74 person-days in Round~1 to 17 in
+Round~3 while the mean barely moved, and the session converged on 126 person-days
+(about 1{,}008 person-hours). The worked convergence of task 4.2 showed what the
+technique is really for: an eleven-day disagreement that turned out to be an
+unwritten assumption about whether QR handling would be built from scratch,
+caught in a planning meeting instead of in Sprint~5.
 
 The risk chapter converted risk from a list of worries into a working procedure.
 Ten risks were scored for probability and impact, four were found to be critical,
@@ -1774,17 +2669,13 @@ indicators watched during the sprint, and a defined contingency executed if a
 risk materialises. Three of those risks were worked through the full cycle to
 demonstrate the procedure.
 
-Finally, the Work Breakdown Structure decomposed the entire scope into four
-levels, from the platform down to sixty-seven terminal work packages, each sized
-for a two-week sprint and each assignable to a single owner. The effort
-allocations were corrected where the earlier draft did not balance, and the
-roll-up was verified to 100\% at every node.
-
-Taken together, these four chapters form a single coherent plan: every objective
+Taken together, these five chapters form a single coherent plan. Every objective
 in Chapter~\ref{ch:vision} is traceable to work packages in
-Chapter~\ref{ch:wbs}, every critical risk in Chapter~\ref{ch:risk} is mitigated
-by a funded element of that same structure, and every element is scheduled
-through the sprint cycle of Chapter~\ref{ch:method}. That traceability is what
-makes the plan executable rather than merely descriptive.
+Chapter~\ref{ch:wbs}; those packages are priced in Chapter~\ref{ch:delphi} by a
+method independent of the one that produced the allocation, and the two agree to
+within half a percentage point; every critical risk in Chapter~\ref{ch:risk} is
+mitigated by a funded element of the same structure; and every element is
+scheduled through the sprint cycle of Chapter~\ref{ch:method}. That traceability
+is what makes the plan executable rather than merely descriptive.
 
 \end{document}
