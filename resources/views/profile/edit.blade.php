@@ -1,38 +1,80 @@
-@php $p = $user->profile; @endphp
-<x-app-layout title="Edit profile — UIU CampusConnect">
-    <div class="mx-auto max-w-xl surface p-6">
-        <h1 class="mb-6 text-lg font-semibold">Edit profile</h1>
-        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-            @csrf @method('PUT')
-
-            <div class="grid grid-cols-2 gap-4">
-                <div><label class="mb-1.5 block text-sm font-medium">Photo</label><input type="file" name="avatar" accept="image/*" class="field"></div>
-                <div><label class="mb-1.5 block text-sm font-medium">Cover</label><input type="file" name="cover" accept="image/*" class="field"></div>
+@php $p = $user->profile; $showAcademic = in_array($user->role, ['faculty', 'official', 'admin'], true); @endphp
+<x-app-layout title="Edit profile - UIU CampusConnect">
+    <div class="mx-auto max-w-2xl">
+        <div class="surface mb-5 flex flex-wrap items-center justify-between gap-3 p-6">
+            <div>
+                <h1 class="text-[19px] font-semibold">Edit profile</h1>
+                <p class="section-sub">Update the details that appear on your campus profile.</p>
             </div>
-
-            <div><label class="mb-1.5 block text-sm font-medium">Full name</label><input name="full_name" value="{{ $user->full_name }}" required class="field"></div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div><label class="mb-1.5 block text-sm font-medium">Department</label><input name="department" value="{{ $user->department }}" class="field"></div>
-                <div><label class="mb-1.5 block text-sm font-medium">Designation</label><input name="designation" value="{{ $user->designation }}" class="field"></div>
+            <div class="flex gap-2">
+                <a href="{{ route('profile.show', $user) }}" class="btn-secondary">View profile</a>
+                <a href="{{ route('settings.password') }}" class="btn-secondary">Account settings</a>
             </div>
+        </div>
 
-            <div><label class="mb-1.5 block text-sm font-medium">Bio</label><textarea name="bio" rows="3" class="field">{{ $p?->bio }}</textarea></div>
+        <div class="surface p-6">
+            <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf @method('PUT')
 
-            <div class="grid grid-cols-2 gap-4">
-                <div><label class="mb-1.5 block text-sm font-medium">Room</label><input name="room" value="{{ $p?->room }}" class="field"></div>
-                <div><label class="mb-1.5 block text-sm font-medium">Phone</label><input name="phone" value="{{ $p?->phone }}" class="field"></div>
-            </div>
+                <div class="flex items-center gap-4 rounded-xl bg-ink-900/[0.03] p-4 dark:bg-white/[0.04]">
+                    <span class="avatar-ring grid h-16 w-16 shrink-0 place-items-center rounded-full bg-primary-100 text-xl font-semibold text-primary-700 dark:bg-primary-900/50 dark:text-primary-200" @if($p?->profile_photo_path) style="background-image:url({{ Storage::url($p->profile_photo_path) }});background-size:cover" @endif>
+                        @unless($p?->profile_photo_path) {{ $user->avatar_initials }} @endunless
+                    </span>
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{{ $user->full_name }}</p>
+                        <p class="section-sub truncate">{{ $user->designation ?: $user->roleLabel() }}{{ $user->department ? ' · '.$user->department : '' }}</p>
+                    </div>
+                </div>
 
-            <div><label class="mb-1.5 block text-sm font-medium">Skills / interests</label><input name="skills" value="{{ $p?->skills }}" class="field"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="mb-1.5 block text-sm font-medium">Profile photo</label><input type="file" name="avatar" accept="image/*" class="field !py-1.5"></div>
+                    <div><label class="mb-1.5 block text-sm font-medium">Cover photo</label><input type="file" name="cover" accept="image/*" class="field !py-1.5"></div>
+                </div>
 
-            <div class="grid grid-cols-3 gap-3 pt-1">
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_email" value="1" {{ $p?->show_email ? 'checked' : '' }} class="rounded border-ink-300 text-primary-600">Show email</label>
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_phone" value="1" {{ $p?->show_phone ? 'checked' : '' }} class="rounded border-ink-300 text-primary-600">Show phone</label>
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_friend_list" value="1" {{ $p?->show_friend_list ? 'checked' : '' }} class="rounded border-ink-300 text-primary-600">Show friends</label>
-            </div>
+                <div><label class="mb-1.5 block text-sm font-medium">Full name</label><input name="full_name" value="{{ $user->full_name }}" required class="field"></div>
 
-            <button type="submit" class="btn-primary w-full py-2.5">Save changes</button>
-        </form>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="mb-1.5 block text-sm font-medium">Department</label><input name="department" value="{{ $user->department }}" class="field"></div>
+                    <div><label class="mb-1.5 block text-sm font-medium">Designation</label><input name="designation" value="{{ $user->designation }}" class="field"></div>
+                </div>
+
+                <div><label class="mb-1.5 block text-sm font-medium">Bio</label><textarea name="bio" rows="4" placeholder="Write a short intro..." class="field">{{ $p?->bio }}</textarea></div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="mb-1.5 block text-sm font-medium">Room / office / location</label><input name="room" value="{{ $p?->room }}" placeholder="Room, office, or location" class="field"></div>
+                    <div><label class="mb-1.5 block text-sm font-medium">Phone</label><input name="phone" value="{{ $p?->phone }}" placeholder="Optional phone" class="field"></div>
+                </div>
+
+                <div><label class="mb-1.5 block text-sm font-medium">Skills</label><input name="skills" value="{{ $p?->skills }}" placeholder="AI, Python, UI design" class="field"></div>
+                <div><label class="mb-1.5 block text-sm font-medium">Interests</label><input name="interests" value="{{ $p?->interests }}" placeholder="Research, debate, robotics" class="field"></div>
+
+                @if ($showAcademic)
+                    <div class="border-t border-ink-100 pt-4 dark:border-ink-800/70">
+                        <h2 class="mb-3 text-sm font-semibold">Academic / official details</h2>
+                        <div class="space-y-4">
+                            <div><label class="mb-1.5 block text-sm font-medium">Office hours</label><input name="office_hours" value="{{ $p?->office_hours }}" placeholder="Sun/Tue 2:00 PM - 4:00 PM" class="field"></div>
+                            <div><label class="mb-1.5 block text-sm font-medium">Research interests</label><input name="research_interests" value="{{ $p?->research_interests }}" placeholder="Machine learning, HCI, data science" class="field"></div>
+                            <div><label class="mb-1.5 block text-sm font-medium">Courses taught</label><input name="courses_taught" value="{{ $p?->courses_taught }}" placeholder="CSE101, CSE301" class="field"></div>
+                            <div><label class="mb-1.5 block text-sm font-medium">Academic resources</label><textarea name="academic_resources" rows="3" placeholder="Links or notes for students..." class="field">{{ $p?->academic_resources }}</textarea></div>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="border-t border-ink-100 pt-4 dark:border-ink-800/70">
+                    <h2 class="mb-3 text-sm font-semibold">Privacy</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_email" value="1" {{ (! $p || $p->show_email) ? 'checked' : '' }} class="h-4 w-4 rounded border-ink-300 text-primary-500 focus:ring-primary-500">Show email</label>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_student_id" value="1" {{ (! $p || $p->show_student_id) ? 'checked' : '' }} class="h-4 w-4 rounded border-ink-300 text-primary-500 focus:ring-primary-500">Show student/employee ID</label>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_phone" value="1" {{ $p?->show_phone ? 'checked' : '' }} class="h-4 w-4 rounded border-ink-300 text-primary-500 focus:ring-primary-500">Show phone</label>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="show_friend_list" value="1" {{ (! $p || $p->show_friend_list) ? 'checked' : '' }} class="h-4 w-4 rounded border-ink-300 text-primary-500 focus:ring-primary-500">Show friend list</label>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="btn-primary flex-1 py-2.5">Save changes</button>
+                    <a href="{{ route('profile.show', $user) }}" class="btn-secondary py-2.5">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </x-app-layout>
