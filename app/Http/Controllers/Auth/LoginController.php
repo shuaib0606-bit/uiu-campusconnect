@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -20,21 +22,26 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        $remember = $request->boolean('remember');
+        $user = User::where('email', strtolower($credentials['email']))->first();
 
-        if (! Auth::attempt([
-            'email' => strtolower($credentials['email']),
-            'password' => $credentials['password'],
-            'status' => 'active',
-        ], $remember)) {
-            return back()->withErrors([
-                'email' => 'Those credentials don\'t match an active account.',
-            ])->onlyInput('email');
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors(['email' => 'Those credentials don\'t match an account.'])->onlyInput('email');
         }
 
+        if ($user->status !== 'active') {
+            $message = match ($user->status) {
+                'pending' => 'Your account is awaiting administrator approval before you can sign in.',
+                'suspended' => 'Your account has been suspended. Contact an administrator for help.',
+                'rejected' => 'Your account request was not approved.',
+                default => 'Your account is not currently active.',
+            };
+
+            return back()->withErrors(['email' => $message])->onlyInput('email');
+        }
+
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        $user = Auth::user();
         $user->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('feed.index'));
@@ -46,6 +53,7 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // Sign-out lands on the public landing page, not the sign-in form.
+        return redirect()->route('welcome');
     }
 }

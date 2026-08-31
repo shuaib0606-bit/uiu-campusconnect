@@ -8,10 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ForcePasswordChange
 {
-    /**
-     * Users created by the faculty bulk-import tool land with a temporary
-     * password and must change it before touching anything else.
-     */
+    /** An account holding a temporary password must change it before reaching any other route. */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();

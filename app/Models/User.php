@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements FilamentUser, HasName
 {
@@ -21,7 +22,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         'full_name', 'email', 'password', 'role', 'authority_level',
         'department', 'designation', 'student_id', 'employee_id', 'year',
         'status', 'avatar_initials', 'is_verified', 'must_change_password',
-        'password_changed_at', 'last_login_at',
+        'password_changed_at', 'last_login_at', 'student_id_card_path',
+        'signup_requested_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -34,6 +36,8 @@ class User extends Authenticatable implements FilamentUser, HasName
             'must_change_password' => 'boolean',
             'password_changed_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'signup_requested_at' => 'datetime',
+            'signup_reviewed_at' => 'datetime',
         ];
     }
 
@@ -86,12 +90,19 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     public function clubs(): BelongsToMany
     {
-        return $this->belongsToMany(Club::class, 'club_members')->withPivot(['club_role', 'can_post_events'])->withTimestamps(false);
+        // club_members has joined_at instead of created_at/updated_at, so the
+        // pivot columns are listed explicitly.
+        return $this->belongsToMany(Club::class, 'club_members')->withPivot(['club_role', 'can_post_events', 'joined_at']);
     }
 
     public function moderatedClubs(): HasMany
     {
         return $this->hasMany(Club::class, 'moderator_id');
+    }
+
+    public function signupReviewer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'signup_reviewed_by');
     }
 
     public function notifications(): HasMany
@@ -134,6 +145,11 @@ class User extends Authenticatable implements FilamentUser, HasName
             'faculty' => 'Faculty',
             default => 'Student',
         };
+    }
+
+    public function handle(): string
+    {
+        return '@'.Str::lower($this->student_id ?? $this->employee_id ?? Str::before($this->email, '@'));
     }
 
     public function canIssueNotices(): bool

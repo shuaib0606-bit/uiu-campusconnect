@@ -3,11 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in — UIU CampusConnect</title>
+    <title>Sign in - UIU CampusConnect</title>
     <script>(function(){var m=document.cookie.match(/(?:^|; )cc_theme=([^;]+)/);if(m&&m[1]==='dark')document.documentElement.classList.add('dark');})();</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="grid min-h-screen place-items-center bg-[#fbfaf8] px-4 dark:bg-[#121110]">
+<body class="grid min-h-screen place-items-center bg-[var(--surface-page)] px-4">
     <div class="w-full max-w-sm">
         <div class="mb-8 flex items-center justify-center gap-2.5">
             <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary-500 text-white font-bold">U</span>
@@ -20,6 +20,11 @@
             @if ($errors->any())
                 <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
                     {{ $errors->first() }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+                    {{ session('error') }}
                 </div>
             @endif
             @if (session('success'))
@@ -47,7 +52,8 @@
         </div>
 
         <p class="mt-6 text-center text-sm text-ink-500 dark:text-ink-400">
-            <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">Create an account</a>
+            <a href="{{ route('password.request') }}" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">Forgot your password?</a>
+            <span class="mt-2 block text-xs text-ink-500 dark:text-ink-400">Accounts are created by the university. Contact the CampusConnect admin office if you cannot sign in.</span>
         </p>
     </div>
 </body>
