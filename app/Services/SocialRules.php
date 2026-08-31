@@ -8,11 +8,7 @@ use App\Models\User;
 use App\Models\UserBlock;
 use Illuminate\Support\Facades\Cache;
 
-/**
- * Central place for the platform's role-based social rules — mirrors the
- * can_* helpers from the original prototype so the logic lives in one
- * auditable spot instead of scattered across controllers.
- */
+/** Role-based rules for connections, messaging, club posting and unread counts. */
 class SocialRules
 {
     public static function friendshipStatus(User $a, User $b): ?Friendship

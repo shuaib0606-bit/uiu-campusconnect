@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ForcePasswordChange::class,
         ]);
 
+        // The theme cookie is read by client-side JS, so it must stay unencrypted.
+        $middleware->encryptCookies(except: [
+            env('THEME_COOKIE_NAME', 'cc_theme'),
+        ]);
+
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {

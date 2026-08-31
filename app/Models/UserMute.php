@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserMute extends Model
 {
-    // Composite-key junction table (muter_id, muted_id) — no surrogate id
-    // column exists, so always query/delete through explicit where()
-    // clauses rather than find()/model->delete() on a fetched instance.
+    // Composite key (muter_id, muted_id); there is no surrogate id column.
     public $incrementing = false;
-    protected $fillable = ['muter_id', 'muted_id'];
+    protected $fillable = ['muter_id', 'muted_id', 'expires_at'];
+
+    protected function casts(): array
+    {
+        return ['expires_at' => 'datetime'];
+    }
 }

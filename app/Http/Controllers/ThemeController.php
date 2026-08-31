@@ -7,11 +7,7 @@ use Illuminate\Support\Facades\Cookie;
 
 class ThemeController extends Controller
 {
-    /**
-     * Persists the visitor's light/dark choice in a plain (non-encrypted)
-     * cookie for a year, so the server can render the right theme on the
-     * very first paint next visit — no flash of the wrong theme.
-     */
+    /** Stores the light/dark choice in an unencrypted cookie for a year, so the server can render the theme. */
     public function __invoke(Request $request)
     {
         $theme = $request->string('theme')->value();

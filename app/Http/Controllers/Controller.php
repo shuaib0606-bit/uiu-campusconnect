@@ -6,12 +6,7 @@ use Illuminate\Http\Request;
 
 abstract class Controller
 {
-    /**
-     * Respond to an in-place (AJAX) action with JSON, or fall back to the
-     * normal redirect-back for a plain form submission. Keeps every
-     * toggle-style controller action usable from both the JS interaction
-     * layer and a plain <form> without duplicating logic.
-     */
+    /** Answers an AJAX action with JSON, or redirects back for a plain form submission. */
     protected function respond(Request $request, array $data = [], ?string $flash = null)
     {
         if ($request->expectsJson()) {
