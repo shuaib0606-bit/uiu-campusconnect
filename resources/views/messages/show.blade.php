@@ -1,4 +1,4 @@
-<x-app-layout :title="$otherUser->full_name.' — Messages'">
+<x-app-layout :title="$otherUser->full_name.' - Messages'">
     <div class="mx-auto flex h-[calc(100vh-160px)] max-w-2xl flex-col surface overflow-hidden">
         <div class="flex items-center gap-3 border-b border-ink-100 dark:border-ink-800/70 px-5 py-3.5">
             <a href="{{ route('messages.index') }}" class="btn-icon rotate-180"><x-ui-icon name="chevron-right" class="h-4 w-4" /></a>
