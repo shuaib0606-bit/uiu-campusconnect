@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PostReaction extends Model
 {
-    // Composite-key junction table (post_id, user_id) — always query/update
-    // through explicit where() clauses rather than find()/model->save().
+    // Composite key (post_id, user_id); there is no surrogate id column.
     public $incrementing = false;
     protected $fillable = ['post_id', 'user_id', 'reaction'];
 

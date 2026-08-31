@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Comment extends Model
 {
@@ -38,5 +40,17 @@ class Comment extends Model
     public function likes(): HasMany
     {
         return $this->hasMany(CommentLike::class);
+    }
+
+    /** Raw @-mention rows, written by App\Support\Mentions::sync(). */
+    public function mentions(): MorphMany
+    {
+        return $this->morphMany(Mention::class, 'mentionable');
+    }
+
+    /** The users named in this comment's body. */
+    public function mentionedUsers(): MorphToMany
+    {
+        return $this->morphToMany(User::class, 'mentionable', 'mentions');
     }
 }

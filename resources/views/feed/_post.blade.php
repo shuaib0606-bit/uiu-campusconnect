@@ -2,12 +2,29 @@
     $myReaction = $post->reactions->firstWhere('user_id', auth()->id());
     $reactionCount = $post->reactions->count();
     $isSaved = $post->relationLoaded('saves') ? ($post->saves->firstWhere('user_id', auth()->id()) ? true : false) : false;
+
+    $reactionSet = \App\Http\Controllers\ReactionController::REACTIONS;
+    $isOwnPost = $post->user_id === auth()->id();
+
+    // Property access caches the relation on the user for the rest of the request.
+    $isFollowing = ! $isOwnPost && auth()->user()->following->contains('id', $post->user_id);
 @endphp
 <article
-    class="surface surface-hover p-5"
+    class="surface surface-interactive p-5"
+    {{-- Raise the whole card while its menu is open. --}}
+    :class="menu && 'z-40'"
     data-post-id="{{ $post->id }}"
     x-data="{
         menu: false,
+        menuUp: false,
+        // Flip the dropdown above the trigger when there isn't room below it.
+        openMenu(el) {
+            if (!this.menu) {
+                const r = el.getBoundingClientRect();
+                this.menuUp = (window.innerHeight - r.bottom) < 340 && r.top > 340;
+            }
+            this.menu = !this.menu;
+        },
         comments: false,
         hidden: false,
         saved: {{ $isSaved ? 'true' : 'false' }},
@@ -57,27 +74,182 @@
         </div>
 
         <div class="relative">
-            <button type="button" class="btn-icon" @click="menu = !menu" @click.outside="menu = false"><x-ui-icon name="dots" class="h-5 w-5" /></button>
-            <div x-show="menu" x-cloak class="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-ink-100 dark:border-ink-800 bg-white dark:bg-[#1a1815] py-1 shadow-lifted text-sm">
-                <button type="button" @click="toggleSave()" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5" :class="saved ? 'text-primary-600 dark:text-primary-300' : ''"><x-ui-icon name="bookmark" class="h-4 w-4" /><span x-text="saved ? 'Saved' : 'Save'"></span></button>
-                <form action="{{ route('posts.share', $post) }}" method="POST"><button class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5">@csrf<x-ui-icon name="share" class="h-4 w-4" />Share to profile</button></form>
-                @if($post->user_id !== auth()->id())
-                    <button type="button" @click="hidePost(); menu = false" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5"><x-ui-icon name="x" class="h-4 w-4" />Hide</button>
-                    <form action="{{ route('posts.report', $post) }}" method="POST" x-data @submit.prevent="$el.reason.value = prompt('Reason') || ''; if($el.reason.value) $el.submit()"><input type="hidden" name="reason" x-ref="reason"><button class="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">@csrf<x-ui-icon name="flag" class="h-4 w-4" />Report</button></form>
+            <button type="button" class="btn-icon" @click="openMenu($el)" @click.outside="menu = false"><x-ui-icon name="dots" class="h-5 w-5" /></button>
+            <div x-show="menu" x-cloak
+                x-transition:enter="transition ease-out duration-150"
+                x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                :class="menuUp ? 'bottom-full mb-1 origin-bottom-right' : 'top-full mt-1 origin-top-right'"
+                class="post-menu absolute right-0 z-30 w-60 rounded-xl border border-ink-100 bg-[var(--surface-raised)] py-1 text-sm shadow-lifted dark:border-ink-800">
+
+                <button type="button" @click="toggleSave()" class="post-menu-item" :class="saved && 'text-primary-600 dark:text-primary-300'">
+                    <x-ui-icon name="bookmark" class="h-4 w-4 shrink-0" />
+                    <span x-text="saved ? 'Saved post' : 'Save post'"></span>
+                </button>
+
+                <form action="{{ route('posts.share', $post) }}" method="POST">
+                    @csrf
+                    <button class="post-menu-item"><x-ui-icon name="share" class="h-4 w-4 shrink-0" />Share post</button>
+                </form>
+
+                @if (! $isOwnPost)
+                    <button type="button" @click="hidePost(); menu = false" class="post-menu-item">
+                        <x-ui-icon name="x" class="h-4 w-4 shrink-0" />Hide post
+                    </button>
+
+                    <div class="my-1 border-t border-ink-100 dark:border-ink-800/70"></div>
+
+                    <button type="button" x-data="ccAction({
+                            url: '{{ route('network.follow', $post->user) }}',
+                            errorMessage: 'Could not update follow.',
+                        })" @click="run(); menu = false" class="post-menu-item">
+                        <x-ui-icon name="user-minus" class="h-4 w-4 shrink-0" />{{ $isFollowing ? 'Unfollow' : 'Follow' }} {{ \Illuminate\Support\Str::before($post->user->full_name, ' ') }}
+                    </button>
+
+                    <button type="button" x-data="ccAction({
+                            url: '{{ route('network.mute', $post->user) }}',
+                            payload: { days: 30 },
+                            errorMessage: 'Could not mute this person.',
+                        })" @click="run(); menu = false" class="post-menu-item">
+                        <x-ui-icon name="speaker-off" class="h-4 w-4 shrink-0" />Mute author for 30 days
+                    </button>
+
+                    <button type="button" x-data="ccAction({
+                            url: '{{ route('network.block', $post->user) }}',
+                            errorMessage: 'Could not block this person.',
+                        })"
+                        @click="if (confirm('Block {{ addslashes($post->user->full_name) }}? You will no longer see each other\'s posts.')) { run(); menu = false }"
+                        class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
+                        <x-ui-icon name="ban" class="h-4 w-4 shrink-0" />Block author
+                    </button>
+
+                    <div class="my-1 border-t border-ink-100 dark:border-ink-800/70"></div>
+
+                    <form action="{{ route('posts.report', $post) }}" method="POST" x-data @submit.prevent="$el.reason.value = prompt('Reason for reporting this post') || ''; if($el.reason.value) $el.submit()">
+                        @csrf
+                        <input type="hidden" name="reason" x-ref="reason">
+                        <button class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
+                            <x-ui-icon name="flag" class="h-4 w-4 shrink-0" />Report post
+                        </button>
+                    </form>
                 @endif
-                @if($post->user_id === auth()->id() || auth()->user()->isAdmin())
-                    <form action="{{ route('posts.destroy', $post) }}" method="POST"><input type="hidden" name="reason" value="Removed by author"><button class="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">@csrf @method('DELETE')<x-ui-icon name="x" class="h-4 w-4" />Delete</button></form>
+
+                @if ($isOwnPost || auth()->user()->isAdmin())
+                    <div class="my-1 border-t border-ink-100 dark:border-ink-800/70"></div>
+                    <form action="{{ route('posts.destroy', $post) }}" method="POST">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="reason" value="Removed by author">
+                        <button class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
+                            <x-ui-icon name="x" class="h-4 w-4 shrink-0" />Delete post
+                        </button>
+                    </form>
                 @endif
             </div>
         </div>
     </div>
 
-    <p class="mt-3.5 whitespace-pre-line text-[15px] leading-relaxed">{{ $post->body }}</p>
+    {{-- Mentions::render() escapes the body before substituting mention anchors. --}}
+    <p class="mt-3.5 whitespace-pre-line text-[15px] leading-relaxed">{!! \App\Support\Mentions::render($post) !!}</p>
 
-    @if ($post->media_type === 'image' && $post->media_path)
-        <img src="{{ Storage::url($post->media_path) }}" class="mt-3.5 max-h-[520px] w-full rounded-2xl object-cover" alt="">
-    @elseif ($post->media_type === 'video' && $post->media_path)
-        <video src="{{ Storage::url($post->media_path) }}" controls class="mt-3.5 w-full rounded-2xl"></video>
+    {{-- Attachments --}}
+    @php
+        $media = $post->media_items;
+        $mediaCount = $media->count();
+        // The feed shows at most four tiles; the rest are counted on the last one.
+        $mediaTiles = $media->take(4);
+        $mediaOverflow = $mediaCount - $mediaTiles->count();
+    @endphp
+
+    @if ($mediaCount > 0)
+        <div class="mt-3.5" x-data="{
+            lightbox: -1,
+            media: @js($media->map(fn ($m) => ['url' => $m->url, 'type' => $m->type])->values()),
+            step(delta) { this.lightbox = (this.lightbox + delta + this.media.length) % this.media.length },
+        }">
+            @if ($mediaCount === 1)
+                @php $only = $mediaTiles->first(); @endphp
+                @if ($only->type === 'video')
+                    <video src="{{ $only->url }}" controls preload="metadata" class="max-h-[520px] w-full rounded-2xl bg-black"></video>
+                @else
+                    <button type="button" @click="lightbox = 0" class="block w-full">
+                        <img src="{{ $only->url }}" loading="lazy" alt="" class="max-h-[520px] w-full rounded-2xl object-cover">
+                    </button>
+                @endif
+            @else
+                {{-- 2 = side by side, 3 = one tall plus two stacked,
+                     4+ = a 2x2 with a +N badge on the last tile. --}}
+                <div class="grid gap-1.5 overflow-hidden rounded-2xl {{ $mediaCount === 3 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2' }}">
+                    @foreach ($mediaTiles as $i => $item)
+                        @php $isOverflowTile = $mediaOverflow > 0 && $i === 3; @endphp
+                        <div class="relative overflow-hidden bg-ink-900/[0.06] dark:bg-white/[0.06] {{ $mediaCount === 3 && $i === 0 ? 'row-span-2 h-full' : 'aspect-square' }}">
+                            @if ($item->type === 'video' && ! $isOverflowTile)
+                                <video src="{{ $item->url }}" controls preload="metadata" class="h-full w-full bg-black object-cover"></video>
+                            @else
+                                <button type="button" @click="lightbox = {{ $i }}" class="block h-full w-full">
+                                    @if ($item->type === 'video')
+                                        <video src="{{ $item->url }}" muted preload="metadata" class="h-full w-full bg-black object-cover"></video>
+                                    @else
+                                        <img src="{{ $item->url }}" loading="lazy" alt="" class="h-full w-full object-cover">
+                                    @endif
+                                    @if ($isOverflowTile)
+                                        <span class="absolute inset-0 grid place-items-center bg-ink-950/55 text-2xl font-semibold text-white">+{{ $mediaOverflow }}</span>
+                                    @endif
+                                </button>
+                            @endif
+
+                            @if ($item->type === 'video' && ! $isOverflowTile)
+                                <span class="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink-950/70 px-2 py-0.5 text-[11px] font-medium text-white">
+                                    <x-ui-icon name="video" class="h-3 w-3" />Video
+                                </span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Lightbox --}}
+            <template x-teleport="body">
+                <div x-show="lightbox >= 0" x-cloak
+                    class="fixed inset-0 z-[80] flex items-center justify-center bg-ink-950/90 p-4"
+                    @click.self="lightbox = -1"
+                    @keydown.escape.window="lightbox = -1"
+                    @keydown.arrow-right.window="if (lightbox >= 0) step(1)"
+                    @keydown.arrow-left.window="if (lightbox >= 0) step(-1)"
+                    role="dialog" aria-modal="true" aria-label="Post attachments">
+
+                    <button type="button" class="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                        @click="lightbox = -1" aria-label="Close">
+                        <x-ui-icon name="x" class="h-5 w-5" />
+                    </button>
+
+                    <template x-if="media.length > 1">
+                        <button type="button" class="absolute left-3 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                            @click="step(-1)" aria-label="Previous">
+                            <x-ui-icon name="chevron-left" class="h-5 w-5" />
+                        </button>
+                    </template>
+                    <template x-if="media.length > 1">
+                        <button type="button" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                            @click="step(1)" aria-label="Next">
+                            <x-ui-icon name="chevron-right" class="h-5 w-5" />
+                        </button>
+                    </template>
+
+                    <template x-if="lightbox >= 0 && media[lightbox] && media[lightbox].type === 'image'">
+                        <img :src="media[lightbox].url" alt="" class="max-h-[85vh] max-w-[90vw] rounded-xl object-contain">
+                    </template>
+                    <template x-if="lightbox >= 0 && media[lightbox] && media[lightbox].type === 'video'">
+                        <video :src="media[lightbox].url" controls autoplay class="max-h-[85vh] max-w-[90vw] rounded-xl bg-black"></video>
+                    </template>
+
+                    <template x-if="media.length > 1">
+                        <span class="absolute bottom-5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white tabular-nums"
+                            x-text="(lightbox + 1) + ' / ' + media.length"></span>
+                    </template>
+                </div>
+            </template>
+        </div>
     @endif
 
     @if ($post->post_type === 'poll' && $post->pollOptions->isNotEmpty())
@@ -97,14 +269,50 @@
         </div>
     @endif
 
-    <div class="mt-4 flex items-center gap-1 border-t border-ink-100 dark:border-ink-800/70 pt-3"
-         x-data="ccToggle({ url: '{{ route('posts.react', $post) }}', active: {{ $myReaction ? 'true' : 'false' }}, count: {{ $reactionCount }}, payload: { reaction: 'like' } })">
-        <button type="button" @click="toggle()" class="btn-ghost !px-3" :class="active ? 'text-primary-600 dark:text-primary-300' : ''">
-            <x-ui-icon name="heart" class="h-4.5 w-4.5" />
-            <span x-text="count || ''"></span>
-        </button>
-        <button type="button" class="btn-ghost !px-3" @click="comments = !comments">
-            <x-ui-icon name="comment" class="h-4.5 w-4.5" />
+    <div class="mt-4 flex items-center gap-1 border-t border-ink-100 pt-3 dark:border-ink-800/70">
+        <div class="relative" x-data="ccReactions({
+                url: '{{ route('posts.react', $post) }}',
+                active: {{ $myReaction ? 'true' : 'false' }},
+                reaction: {{ $myReaction ? "'".$myReaction->reaction."'" : 'null' }},
+                count: {{ $reactionCount }},
+                labels: @js(collect($reactionSet)->map(fn ($r) => $r['label'])),
+                icons: @js(collect($reactionSet)->map(fn ($r) => $r['icon'])),
+            })"
+            @mouseenter="show()" @mouseleave="hide()">
+
+            {{-- Hover flyout --}}
+            <div x-show="open" x-cloak
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-y-1 scale-90"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                x-transition:leave="transition ease-in duration-120"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-90"
+                class="absolute bottom-full left-0 z-30 origin-bottom-left pb-2">
+                <div class="flex items-center gap-0.5 rounded-full border border-ink-100 bg-[var(--surface-raised)] p-1 shadow-lifted dark:border-ink-800">
+                    @foreach ($reactionSet as $key => $r)
+                        <button type="button" @click="send('{{ $key }}')"
+                            class="reaction-pick" :class="reaction === '{{ $key }}' && 'is-picked'"
+                            title="{{ $r['label'] }}" aria-label="{{ $r['label'] }}">
+                            <x-ui-icon :name="$r['icon']" class="h-5 w-5" />
+                            <span class="reaction-pick-label">{{ $r['label'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <button type="button" @click="primary()" class="reaction-btn" :class="active && 'is-on'">
+                <template x-if="reaction === 'love'"><span class="contents"><x-ui-icon name="heart" class="reaction-icon h-4.5 w-4.5" /></span></template>
+                <template x-if="reaction === 'helpful'"><span class="contents"><x-ui-icon name="lightbulb" class="reaction-icon no-fill h-4.5 w-4.5" /></span></template>
+                <template x-if="reaction === 'question'"><span class="contents"><x-ui-icon name="question-mark-circle" class="reaction-icon no-fill h-4.5 w-4.5" /></span></template>
+                <template x-if="reaction !== 'love' && reaction !== 'helpful' && reaction !== 'question'"><span class="contents"><x-ui-icon name="thumb-up" class="reaction-icon h-4.5 w-4.5" /></span></template>
+                <span x-text="label"></span>
+                <span x-show="count" x-cloak x-text="count" class="tabular-nums"></span>
+            </button>
+        </div>
+
+        <button type="button" class="reaction-btn" :class="comments && 'is-on'" @click="comments = !comments">
+            <x-ui-icon name="comment" class="reaction-icon no-fill h-4.5 w-4.5" />
             <span x-text="commentCount || ''"></span>
         </button>
     </div>
@@ -118,7 +326,29 @@
 
         <form class="flex items-center gap-2" @submit.prevent="addComment($el)">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ auth()->user()->avatar_initials }}</span>
-            <input name="body" required placeholder="Write a comment" class="field py-2">
+
+            {{-- Mention autocomplete --}}
+            <div class="relative flex-1" x-data="ccMentionField({ searchUrl: '{{ route('users.search') }}' })" @click.outside="close()">
+                <div x-show="mOpen" x-cloak
+                    class="absolute bottom-full left-0 z-30 mb-1 w-72 max-w-full overflow-hidden rounded-xl border border-ink-100 bg-[var(--surface-raised)] py-1 shadow-lifted dark:border-ink-800">
+                    <template x-for="(item, i) in mItems" :key="item.id">
+                        <button type="button" @click="choose(item)" @mouseenter="mIndex = i"
+                            class="flex w-full items-center gap-2.5 px-3 py-2 text-left"
+                            :class="i === mIndex ? 'bg-primary-500/10' : ''">
+                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200" x-text="item.avatar_initials"></span>
+                            <span class="min-w-0">
+                                <span class="block truncate text-[13px] font-medium" x-text="item.full_name"></span>
+                                <span class="block truncate text-[11px] text-ink-500 dark:text-ink-400" x-text="'@' + item.handle"></span>
+                            </span>
+                        </button>
+                    </template>
+                </div>
+
+                <input x-ref="field" name="body" required placeholder="Write a comment (use @ to mention)"
+                    autocomplete="off" class="field w-full py-2"
+                    @input="detect()" @keydown="onKeydown($event)" @blur="setTimeout(() => close(), 150)">
+            </div>
+
             <button type="submit" class="btn-icon"><x-ui-icon name="send" class="h-4.5 w-4.5" /></button>
         </form>
     </div>
