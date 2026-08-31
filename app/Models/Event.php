@@ -10,7 +10,7 @@ class Event extends Model
 {
     protected $fillable = [
         'title', 'description', 'category', 'poster_path', 'start_datetime', 'end_datetime',
-        'location', 'capacity', 'organizer_user_id', 'club_id', 'status',
+        'location', 'registration_url', 'capacity', 'organizer_user_id', 'club_id', 'status',
     ];
 
     protected function casts(): array
@@ -33,11 +33,17 @@ class Event extends Model
 
     public function registrants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'event_registrations')->withTimestamps(false);
+        // The pivot has created_at but no updated_at, so withTimestamps() cannot be used.
+        return $this->belongsToMany(User::class, 'event_registrations')->withPivot('created_at');
     }
 
     public function interested(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'event_interests')->withTimestamps(false);
+        return $this->belongsToMany(User::class, 'event_interests')->withPivot('created_at');
+    }
+
+    public function checkins(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'event_checkins')->withPivot('checked_in_at');
     }
 }
