@@ -1,7 +1,7 @@
 {
     "name": "uiu/campusconnect",
     "type": "project",
-    "description": "UIU CampusConnect — role-based campus social platform.",
+    "description": "UIU CampusConnect - role-based campus social platform.",
     "keywords": ["laravel", "campusconnect"],
     "license": "MIT",
     "require": {
