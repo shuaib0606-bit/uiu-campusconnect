@@ -6,7 +6,7 @@
 {{-- Anchor target for notification links to a comment. --}}
 <div id="comment-{{ $comment->id }}" class="flex items-start gap-2.5">
     <a href="{{ route('profile.show', $comment->user) }}" class="shrink-0">
-        <span class="grid h-8 w-8 place-items-center rounded-full bg-ink-900/5 dark:bg-white/10 text-xs font-semibold">{{ $comment->user->avatar_initials }}</span>
+        <x-user-avatar :user="$comment->user" size="h-8 w-8" text="text-xs" />
     </a>
     <div class="min-w-0 flex-1">
         <div class="rounded-2xl bg-ink-900/[0.03] dark:bg-white/[0.05] px-3.5 py-2">
