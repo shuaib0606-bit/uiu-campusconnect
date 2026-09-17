@@ -3,7 +3,7 @@
         <div class="flex items-center gap-3 border-b border-ink-100 dark:border-ink-800/70 px-5 py-3.5">
             <a href="{{ route('messages.index') }}" class="btn-icon rotate-180"><x-ui-icon name="chevron-right" class="h-4 w-4" /></a>
             <a href="{{ route('profile.show', $otherUser) }}" class="flex items-center gap-3">
-                <span class="grid h-9 w-9 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ $otherUser->avatar_initials }}</span>
+                <x-user-avatar :user="$otherUser" size="h-9 w-9" text="text-xs" />
                 <span class="text-sm font-semibold">{{ $otherUser->full_name }}</span>
             </a>
         </div>

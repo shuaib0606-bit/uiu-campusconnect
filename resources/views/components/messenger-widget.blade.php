@@ -33,7 +33,7 @@
             </template>
             <template x-for="t in threads" :key="t.user_id">
                 <button type="button" @click="openChat(t)" class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-900/[0.04] dark:hover:bg-white/[0.05]">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200" x-text="t.avatar_initials"></span>
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-semibold bg-cover bg-center" :class="t.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="t.avatar_url ? `background-image:url('${t.avatar_url}')` : ''" x-text="t.avatar_url ? '' : t.avatar_initials"></span>
                     <span class="min-w-0 flex-1">
                         <span class="flex items-center justify-between gap-2">
                             <span class="truncate text-[13.5px] font-semibold" x-text="t.name"></span>
@@ -55,7 +55,7 @@
                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
                 class="flex h-[420px] w-72 flex-col overflow-hidden rounded-2xl border border-ink-100 dark:border-ink-800/70 bg-[var(--surface-raised)] shadow-lifted">
                 <div class="flex items-center gap-2 border-b border-ink-100 dark:border-ink-800/70 px-3 py-2.5">
-                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200" x-text="w.avatar_initials"></span>
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold bg-cover bg-center" :class="w.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="w.avatar_url ? `background-image:url('${w.avatar_url}')` : ''" x-text="w.avatar_url ? '' : w.avatar_initials"></span>
                     <span class="min-w-0 flex-1 truncate text-[13.5px] font-semibold" x-text="w.name"></span>
                     <button type="button" @click="closeChat(w.user_id)" class="btn-icon !h-7 !w-7"><x-ui-icon name="x" class="h-3.5 w-3.5" /></button>
                 </div>
