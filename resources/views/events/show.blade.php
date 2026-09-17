@@ -3,9 +3,7 @@
         <a href="{{ route('events.index') }}" class="mb-4 inline-flex items-center gap-1 text-sm text-ink-500 hover:text-ink-900 dark:hover:text-white"><x-ui-icon name="chevron-right" class="h-4 w-4 rotate-180" />Back to Events</a>
 
         <div class="surface mb-5 overflow-hidden">
-            @if ($event->poster_path)
-                <img src="{{ Storage::url($event->poster_path) }}" alt="Event poster" class="max-h-80 w-full object-cover">
-            @endif
+            <x-media-gallery :item="$event" type="event" :can-edit="$canEditMedia" height="h-56 sm:h-80" />
             <div class="p-6">
                 <h1 class="text-[22px] font-semibold tracking-tight">{{ $event->title }}</h1>
                 <p class="section-sub mt-1">{{ $event->category }}{{ $event->club ? ' · '.$event->club->name : '' }}</p>
@@ -52,7 +50,7 @@
                     <div class="space-y-3">
                         @forelse ($attendees as $attendee)
                             <div class="flex items-center gap-3">
-                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ $attendee->avatar_initials }}</span>
+                                <x-user-avatar :user="$attendee" size="h-9 w-9" text="text-xs" />
                                 <div class="min-w-0">
                                     <a href="{{ route('profile.show', $attendee) }}" class="text-sm font-semibold hover:underline">{{ $attendee->full_name }}</a>
                                     <p class="section-sub truncate">{{ $attendee->department ?: ucfirst($attendee->role) }}</p>

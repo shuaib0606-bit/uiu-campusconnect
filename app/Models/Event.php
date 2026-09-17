@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasGallery;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Event extends Model
 {
+    use HasGallery;
+
     protected $fillable = [
         'title', 'description', 'category', 'poster_path', 'start_datetime', 'end_datetime',
         'location', 'registration_url', 'capacity', 'organizer_user_id', 'club_id', 'status',
@@ -45,5 +48,15 @@ class Event extends Model
     public function checkins(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'event_checkins')->withPivot('checked_in_at');
+    }
+
+    public function coverColumn(): ?string
+    {
+        return 'poster_path';
+    }
+
+    public function galleryOwnerId(): ?int
+    {
+        return $this->organizer_user_id;
     }
 }
