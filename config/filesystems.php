@@ -13,7 +13,9 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            // Relative, so uploads resolve on whatever host and port the app is
+            // served from instead of depending on APP_URL being correct.
+            'url' => '/storage',
             'visibility' => 'public',
             'throw' => false,
         ],
