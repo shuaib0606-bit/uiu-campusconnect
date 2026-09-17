@@ -66,6 +66,7 @@ class UserSearchController extends Controller
                 // Mentions::tokenFor() builds the only token form the parser resolves.
                 'handle' => Mentions::tokenFor($user),
                 'avatar_initials' => $user->avatar_initials,
+                'avatar_url' => $user->avatar_url,
                 'role' => $user->role,
                 'role_label' => $user->roleLabel(),
             ])

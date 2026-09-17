@@ -46,7 +46,7 @@
                             <div class="space-y-2">
                                 @foreach ($users as $u)
                                     <a href="{{ route('profile.show', $u) }}" class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-ink-900/[0.03] dark:hover:bg-white/[0.04]">
-                                        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">{{ $u->avatar_initials }}</span>
+                                        <x-user-avatar :user="$u" size="h-9 w-9" text="text-xs" />
                                         <span class="min-w-0"><span class="block truncate text-sm font-semibold">{{ $u->full_name }}</span><span class="block truncate text-xs text-ink-400">{{ $u->department ?: ucfirst($u->role) }}</span></span>
                                     </a>
                                 @endforeach
