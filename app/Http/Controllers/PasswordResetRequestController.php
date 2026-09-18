@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class PasswordResetRequestController extends Controller
 {
@@ -75,14 +76,52 @@ class PasswordResetRequestController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        return view('admin.password-requests', [
-            'requests' => $requests,
+        return Inertia::render('Admin/PasswordRequests', [
+            'requests' => $requests->through(fn (PasswordResetRequest $req) => $this->card($req)),
             'tab' => $tab,
-            'counts' => $counts,
+            'counts' => [
+                'pending' => (int) ($counts['pending'] ?? 0),
+                'approved' => (int) ($counts['approved'] ?? 0),
+                'rejected' => (int) ($counts['rejected'] ?? 0),
+            ],
             // Flashed by review() and readable for one redirect only.
             'issued' => session('issued_password'),
             'issuedFor' => session('issued_for'),
         ]);
+    }
+
+    /** One recovery request, flattened for the React page. */
+    private function card(PasswordResetRequest $req): array
+    {
+        $user = $req->user;
+
+        $identity = $user
+            ? array_filter([$user->email, $user->department, $user->student_id ? 'ID '.$user->student_id : null])
+            : [];
+
+        $reviewed = array_filter([
+            'Reviewed by '.($req->reviewer?->full_name ?? 'unknown'),
+            $req->reviewed_at?->format('M j, Y g:i A'),
+        ]);
+
+        return [
+            'id' => $req->id,
+            'status' => $req->status,
+            'status_label' => ucfirst($req->status),
+            'is_pending' => $req->isPending(),
+            'is_unmatched' => $req->isUnmatched(),
+            'role_label' => $user?->roleLabel(),
+            'full_name' => $user?->full_name ?? 'Unknown person',
+            'submitted_identifier' => $req->submitted_identifier,
+            'submitted_ago' => $req->created_at->diffForHumans(),
+            'ip_address' => $req->ip_address,
+            'identity' => implode(' · ', $identity),
+            'note' => $req->note,
+            'reviewed_line' => $req->isPending()
+                ? null
+                : implode(' · ', $reviewed).($req->review_note ? ' — '.$req->review_note : ''),
+            'review_url' => route('password-requests.review', $req),
+        ];
     }
 
     /**
