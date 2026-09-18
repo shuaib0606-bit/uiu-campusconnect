@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class UserApprovalController extends Controller
 {
@@ -37,12 +39,53 @@ class UserApprovalController extends Controller
             ->limit(400)
             ->get();
 
-        return view('admin.user-approvals', [
-            'requests' => $requests,
-            'statusCounts' => $statusCounts,
+        return Inertia::render('Admin/UserApprovals', [
+            'requests' => $requests->map(fn (User $req) => $this->card($req))->values(),
+            'statusCounts' => [
+                'pending' => (int) ($statusCounts['pending'] ?? 0),
+                'active' => (int) ($statusCounts['active'] ?? 0),
+                'rejected' => (int) ($statusCounts['rejected'] ?? 0),
+                'suspended' => (int) ($statusCounts['suspended'] ?? 0),
+            ],
             'tab' => $tab,
-            'q' => $q,
+            'filters' => ['q' => $q],
         ]);
+    }
+
+    /** One account awaiting a decision, with the buttons it should offer. */
+    private function card(User $req): array
+    {
+        $details = array_filter([
+            ucfirst($req->role),
+            $req->department,
+            $req->student_id ? 'Student ID: '.$req->student_id : null,
+            $req->employee_id ? 'Employee ID: '.$req->employee_id : null,
+        ]);
+
+        return [
+            'id' => $req->id,
+            'full_name' => $req->full_name,
+            'email' => $req->email,
+            'status' => $req->status,
+            'status_label' => ucfirst($req->status),
+            'details' => implode(' · ', $details),
+            'avatar_url' => $req->avatar_url,
+            'avatar_initials' => $req->avatar_initials,
+            'requested_at' => optional($req->signup_requested_at ?? $req->created_at)->format('M j, Y g:i A'),
+            'reviewed_by' => $req->signupReviewer?->full_name ?: 'Not reviewed',
+            'review_note' => $req->signup_review_note ?: 'No note',
+            'verified' => $req->is_verified ? 'Yes' : 'No',
+            'is_student' => $req->role === 'student',
+            'id_card_url' => $req->student_id_card_path ? Storage::url($req->student_id_card_path) : null,
+            'profile_url' => route('profile.show', $req),
+            'review_url' => route('user-approvals.review', $req),
+            'can' => [
+                'approve' => $req->status !== 'active',
+                'reject' => $req->status === 'pending',
+                'suspend' => $req->status === 'active',
+                'reactivate' => $req->status === 'suspended',
+            ],
+        ];
     }
 
     public function review(Request $request, User $target)
