@@ -7,6 +7,8 @@ use App\Models\ProfileReport;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class ModerationController extends Controller
 {
@@ -50,13 +52,67 @@ class ModerationController extends Controller
         }
         // Single-type tabs show every status for that type.
 
-        return view('admin.moderation', [
-            'posts' => $posts->values(),
-            'comments' => $comments->values(),
-            'profiles' => $profiles->values(),
+        return Inertia::render('Admin/Moderation', [
+            'posts' => $posts->values()->map(fn (Report $r) => $this->card(
+                $r,
+                route('moderation.posts.review', $r),
+                'Remove post',
+                $r->post
+                    ? 'By '.$r->post->user->full_name.': '.Str::limit($r->post->body, 220)
+                    : null,
+                'This post no longer exists.',
+            ))->values(),
+
+            'comments' => $comments->values()->map(fn (CommentReport $r) => $this->card(
+                $r,
+                route('moderation.comments.review', $r),
+                'Remove comment',
+                $r->comment
+                    ? 'By '.($r->comment->user->full_name ?? 'Unknown').': '.Str::limit($r->comment->body, 220)
+                    : null,
+                'This comment no longer exists.',
+            ))->values(),
+
+            'profiles' => $profiles->values()->map(fn (ProfileReport $r) => $this->card(
+                $r,
+                route('moderation.profiles.review', $r),
+                'Suspend user',
+                $r->details ?: null,
+                null,
+                $r->reportedUser ? [
+                    'name' => $r->reportedUser->full_name,
+                    'url' => route('profile.show', $r->reportedUser),
+                ] : null,
+            ))->values(),
+
             'counts' => $counts,
             'tab' => $tab,
         ]);
+    }
+
+    /**
+     * One report in the shape the React page draws. Every type shares it, so
+     * the page has a single card component instead of three near-copies.
+     */
+    private function card($report, string $reviewUrl, string $actionLabel, ?string $quote, ?string $missing, ?array $against = null): array
+    {
+        $open = in_array($report->status, self::OPEN_STATUSES, true);
+
+        return [
+            'id' => $report->id,
+            'status' => $report->status,
+            'status_label' => ucfirst($report->status),
+            'is_open' => $open,
+            'created_at' => $report->created_at->format('M j, Y g:i A'),
+            'reporter' => $report->reporter?->full_name ?? 'Unknown',
+            'reason' => $report->reason,
+            'quote' => $quote,
+            'missing' => $quote === null ? $missing : null,
+            'against' => $against,
+            'moderator_note' => $report->moderator_note,
+            'review_url' => $reviewUrl,
+            'action_label' => $actionLabel,
+        ];
     }
 
     public function reviewPost(Request $request, Report $report)
@@ -73,7 +129,16 @@ class ModerationController extends Controller
     {
         return $this->reviewReport($request, $profileReport, function () use ($profileReport, $request) {
             $note = trim((string) $request->get('moderator_note', ''));
-            $profileReport->reportedUser?->update(['status' => 'suspended', 'signup_review_note' => $note !== '' ? $note : 'Suspended after profile report.', 'signup_reviewed_by' => $request->user()->id, 'signup_reviewed_at' => now()]);
+
+            // forceFill, not update: the three signup_review_* columns are not
+            // mass assignable, so update() suspended the account and threw the
+            // reason away, leaving "Not reviewed" on the approvals screen.
+            $profileReport->reportedUser?->forceFill([
+                'status' => 'suspended',
+                'signup_review_note' => $note !== '' ? $note : 'Suspended after profile report.',
+                'signup_reviewed_by' => $request->user()->id,
+                'signup_reviewed_at' => now(),
+            ])->save();
         });
     }
 
