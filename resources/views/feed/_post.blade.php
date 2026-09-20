@@ -27,6 +27,9 @@
         },
         comments: false,
         hidden: false,
+        // Both of these used to be browser dialogs, which freeze the page.
+        reporting: false,
+        confirmBlock: false,
         saved: {{ $isSaved ? 'true' : 'false' }},
         saveBusy: false,
         commentCount: {{ $post->comments_count ?? $post->comments->count() }},
@@ -61,7 +64,7 @@
 >
     <div class="flex items-start gap-3">
         <a href="{{ route('profile.show', $post->user) }}" class="shrink-0">
-            <span class="grid h-10 w-10 place-items-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ $post->user->avatar_initials }}</span>
+            <x-user-avatar :user="$post->user" size="h-10 w-10" text="text-sm" />
         </a>
         <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
@@ -70,11 +73,15 @@
                     <span class="chip !px-1.5 !py-0.5 text-primary-600 dark:text-primary-300"><x-ui-icon name="check" class="h-3 w-3" /></span>
                 @endif
             </div>
-            <p class="text-xs text-ink-500 dark:text-ink-400">{{ $post->user->roleLabel() }} · {{ $post->created_at->diffForHumans() }}</p>
+            <p class="text-xs text-ink-500 dark:text-ink-400">
+                {{ $post->user->roleLabel() }} &middot;
+                {{-- The timestamp is the post's permalink; nothing else linked to it. --}}
+                <a href="{{ route('posts.show', $post) }}" class="transition hover:text-ink-700 hover:underline dark:hover:text-ink-200" title="{{ $post->created_at->format('M j, Y g:i A') }}">{{ $post->created_at->diffForHumans() }}</a>
+            </p>
         </div>
 
-        <div class="relative">
-            <button type="button" class="btn-icon" @click="openMenu($el)" @click.outside="menu = false"><x-ui-icon name="dots" class="h-5 w-5" /></button>
+        <div class="relative" @click.outside="menu = false; reporting = false; confirmBlock = false">
+            <button type="button" class="btn-icon" @click="openMenu($el)"><x-ui-icon name="dots" class="h-5 w-5" /></button>
             <div x-show="menu" x-cloak
                 x-transition:enter="transition ease-out duration-150"
                 x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
@@ -114,23 +121,45 @@
                         <x-ui-icon name="speaker-off" class="h-4 w-4 shrink-0" />Mute author for 30 days
                     </button>
 
-                    <button type="button" x-data="ccAction({
-                            url: '{{ route('network.block', $post->user) }}',
-                            errorMessage: 'Could not block this person.',
-                        })"
-                        @click="if (confirm('Block {{ addslashes($post->user->full_name) }}? You will no longer see each other\'s posts.')) { run(); menu = false }"
+                    <button type="button" x-show="!confirmBlock" @click="confirmBlock = true"
                         class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
                         <x-ui-icon name="ban" class="h-4 w-4 shrink-0" />Block author
                     </button>
 
+                    <div x-show="confirmBlock" x-cloak class="px-4 py-2.5">
+                        <p class="text-xs text-ink-600 dark:text-ink-300">Block {{ $post->user->full_name }}? You will no longer see each other's posts.</p>
+                        <div class="mt-2 flex gap-2">
+                            <button type="button" x-data="ccAction({
+                                    url: '{{ route('network.block', $post->user) }}',
+                                    errorMessage: 'Could not block this person.',
+                                })" @click="run(); menu = false; confirmBlock = false"
+                                class="btn-danger !px-3 !py-1.5 text-xs">Block</button>
+                            <button type="button" @click="confirmBlock = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>
+                        </div>
+                    </div>
+
                     <div class="my-1 border-t border-ink-100 dark:border-ink-800/70"></div>
 
-                    <form action="{{ route('posts.report', $post) }}" method="POST" x-data @submit.prevent="$el.reason.value = prompt('Reason for reporting this post') || ''; if($el.reason.value) $el.submit()">
+                    <button type="button" x-show="!reporting" @click="reporting = true"
+                        class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
+                        <x-ui-icon name="flag" class="h-4 w-4 shrink-0" />Report post
+                    </button>
+
+                    <form x-show="reporting" x-cloak action="{{ route('posts.report', $post) }}" method="POST" class="px-4 py-2.5">
                         @csrf
-                        <input type="hidden" name="reason" x-ref="reason">
-                        <button class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
-                            <x-ui-icon name="flag" class="h-4 w-4 shrink-0" />Report post
-                        </button>
+                        <span class="block text-xs font-medium text-ink-600 dark:text-ink-300">Why are you reporting this?</span>
+                        <select name="reason" required class="field mt-1.5 !py-1.5 text-xs">
+                            <option value="">Choose a reason</option>
+                            <option>Spam or advertising</option>
+                            <option>Harassment or bullying</option>
+                            <option>False information</option>
+                            <option>Inappropriate content</option>
+                            <option>Something else</option>
+                        </select>
+                        <div class="mt-2 flex gap-2">
+                            <button type="submit" class="btn-primary !px-3 !py-1.5 text-xs">Send report</button>
+                            <button type="button" @click="reporting = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>
+                        </div>
                     </form>
                 @endif
 
@@ -149,8 +178,73 @@
         </div>
     </div>
 
-    {{-- Mentions::render() escapes the body before substituting mention anchors. --}}
-    <p class="mt-3.5 whitespace-pre-line text-[15px] leading-relaxed">{!! \App\Support\Mentions::render($post) !!}</p>
+    @if ($post->isCode())
+        {{-- A snippet is shown as code, never run and never interpreted: the
+             body is escaped here exactly as it is anywhere else. --}}
+        <div class="mt-3.5 overflow-hidden rounded-xl border border-ink-100 dark:border-ink-800"
+            x-data="{ copied: false, copy() {
+                navigator.clipboard.writeText(this.$refs.code.textContent).then(() => {
+                    this.copied = true;
+                    setTimeout(() => this.copied = false, 1500);
+                }).catch(() => {});
+            } }">
+            <div class="flex items-center justify-between gap-2 bg-ink-900/[0.04] px-3.5 py-1.5 dark:bg-white/[0.06]">
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                    {{ $post->code_language ?: 'text' }}
+                </span>
+                <button type="button" @click="copy()" class="btn-ghost !px-2 !py-0.5 text-[11px]">
+                    <span x-show="!copied">Copy</span>
+                    <span x-show="copied" x-cloak>Copied</span>
+                </button>
+            </div>
+            <pre class="rail-scroll overflow-x-auto px-3.5 py-3 text-[13px] leading-relaxed"><code x-ref="code" class="cc-code font-mono" data-language="{{ $post->code_language ?: 'text' }}">{{ $post->body }}</code></pre>
+        </div>
+    @else
+        {{-- Mentions::render() escapes the body before substituting mention anchors. --}}
+        <p class="mt-3.5 whitespace-pre-line text-[15px] leading-relaxed">{!! \App\Support\Mentions::render($post) !!}</p>
+    @endif
+
+    {{-- Link preview. Only drawn when the fetch actually found something. --}}
+    @if ($post->link && $post->link->isUseful())
+        <a href="{{ $post->link->url }}" target="_blank" rel="noopener noreferrer nofollow"
+            class="mt-3.5 flex gap-3 overflow-hidden rounded-xl border border-ink-100 transition hover:border-primary-300 dark:border-ink-800">
+            @if ($post->link->image_url)
+                <span class="hidden h-24 w-32 shrink-0 bg-ink-900/[0.06] bg-cover bg-center sm:block dark:bg-white/[0.06]"
+                    style="background-image: url('{{ $post->link->image_url }}')"></span>
+            @endif
+            <span class="min-w-0 flex-1 px-3.5 py-3">
+                <span class="block text-[11px] font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                    {{ $post->link->site_name ?: $post->link->host() }}
+                </span>
+                @if ($post->link->title)
+                    <span class="mt-0.5 block truncate text-sm font-semibold">{{ $post->link->title }}</span>
+                @endif
+                @if ($post->link->description)
+                    <span class="mt-0.5 line-clamp-2 block text-xs text-ink-600 dark:text-ink-300">{{ $post->link->description }}</span>
+                @endif
+            </span>
+        </a>
+    @endif
+
+    {{-- Documents. Listed rather than shown: they are read elsewhere, and
+         they are fetched through a route that checks who is asking. --}}
+    @if ($post->documents->isNotEmpty())
+        <div class="mt-3.5 space-y-1.5">
+            @foreach ($post->documents as $document)
+                <a href="{{ route('posts.media.download', $document) }}"
+                    class="flex items-center gap-3 rounded-xl border border-ink-100 px-3.5 py-2.5 transition hover:border-primary-300 dark:border-ink-800">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-500/10 text-[10px] font-bold text-primary-700 dark:text-primary-300">
+                        {{ Str::limit($document->kindLabel(), 4, '') }}
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate text-sm font-medium">{{ $document->original_name ?: basename($document->path) }}</span>
+                        <span class="block text-xs text-ink-500 dark:text-ink-400">{{ $document->sizeLabel() }}</span>
+                    </span>
+                    <x-ui-icon name="download" class="h-4 w-4 shrink-0 text-ink-400" />
+                </a>
+            @endforeach
+        </div>
+    @endif
 
     {{-- Attachments --}}
     @php
@@ -325,7 +419,7 @@
         </div>
 
         <form class="flex items-center gap-2" @submit.prevent="addComment($el)">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ auth()->user()->avatar_initials }}</span>
+            <x-user-avatar :user="auth()->user()" size="h-8 w-8" text="text-xs" />
 
             {{-- Mention autocomplete --}}
             <div class="relative flex-1" x-data="ccMentionField({ searchUrl: '{{ route('users.search') }}' })" @click.outside="close()">
@@ -335,7 +429,7 @@
                         <button type="button" @click="choose(item)" @mouseenter="mIndex = i"
                             class="flex w-full items-center gap-2.5 px-3 py-2 text-left"
                             :class="i === mIndex ? 'bg-primary-500/10' : ''">
-                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200" x-text="item.avatar_initials"></span>
+                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold bg-cover bg-center" :class="item.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="item.avatar_url ? `background-image:url('${item.avatar_url}')` : ''" x-text="item.avatar_url ? '' : item.avatar_initials"></span>
                             <span class="min-w-0">
                                 <span class="block truncate text-[13px] font-medium" x-text="item.full_name"></span>
                                 <span class="block truncate text-[11px] text-ink-500 dark:text-ink-400" x-text="'@' + item.handle"></span>

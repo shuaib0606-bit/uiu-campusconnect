@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Club;
 use App\Models\Event;
-use App\Models\Notice;
 use App\Models\Post;
 use App\Models\PostView;
 use App\Models\User;
@@ -13,9 +12,33 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class FeedController extends Controller
 {
+    /**
+     * The feed's tabs, in the order they appear. For You and Trending are
+     * ranked; the rest are chronological filters over the same posts.
+     */
+    public const TABS = [
+        'for-you' => 'For You',
+        'following' => 'Following',
+        'trending' => 'Trending',
+        'department' => 'Department',
+        'batch' => 'My Batch',
+        'clubs' => 'My Clubs',
+    ];
+
+    /** What an empty tab should say, so it reads as a state and not a fault. */
+    public const EMPTY_STATE = [
+        'for-you' => ['Nothing here yet', 'Be the first to share something with campus.'],
+        'following' => ['No posts from people you follow', 'Follow more people to see their posts here.'],
+        'trending' => ['Nothing is trending', 'Trending looks at the last two days. Check back when campus wakes up.'],
+        'department' => ['Nothing from your department yet', 'Posts from people in your department will appear here.'],
+        'batch' => ['Nothing from your batch yet', 'Posts from people in your department and year will appear here.'],
+        'clubs' => ['Nothing from your clubs yet', 'Posts your clubs share will appear here.'],
+    ];
+
     /** Posts per batch. */
     private const PER_PAGE = 10;
 
@@ -45,8 +68,6 @@ class FeedController extends Controller
         $nextCursor = $batch['nextCursor'];
         $hasMore = $batch['hasMore'];
 
-        $latestNotice = Cache::remember('feed:latest-notice', 60, fn () => Notice::where('status', 'published')->latest()->first());
-
         $upcomingEvents = Event::where('status', 'published')
             ->where('start_datetime', '>=', now())
             ->orderBy('start_datetime')
@@ -60,10 +81,16 @@ class FeedController extends Controller
             ->limit(3)
             ->get();
 
-        return view('feed.index', compact(
-            'posts', 'tab', 'nextCursor', 'hasMore',
-            'latestNotice', 'upcomingEvents', 'suggestedClubs'
-        ));
+        return view('feed.index', [
+            'posts' => $posts,
+            'tab' => $tab,
+            'tabs' => $this->tabsFor($user),
+            'emptyState' => self::EMPTY_STATE[$tab] ?? self::EMPTY_STATE['for-you'],
+            'nextCursor' => $nextCursor,
+            'hasMore' => $hasMore,
+            'upcomingEvents' => $upcomingEvents,
+            'suggestedClubs' => $suggestedClubs,
+        ]);
     }
 
     /** JSON endpoint for infinite scroll. Returns rendered post HTML. */
@@ -118,7 +145,35 @@ class FeedController extends Controller
 
     private function tab(Request $request): string
     {
-        return $request->get('tab') === 'following' ? 'following' : 'for-you';
+        $tab = (string) $request->get('tab', '');
+
+        return array_key_exists($tab, self::TABS) ? $tab : 'for-you';
+    }
+
+    /**
+     * Which tabs this person can actually use. A student with no department
+     * recorded gets no Department tab rather than an empty one, and somebody
+     * in no clubs gets no Clubs tab.
+     *
+     * @return array<string, string>
+     */
+    private function tabsFor(User $user): array
+    {
+        $tabs = self::TABS;
+
+        if (! $user->department) {
+            unset($tabs['department']);
+        }
+
+        if (! $user->department || ! $user->year) {
+            unset($tabs['batch']);
+        }
+
+        if (! DB::table('club_members')->where('user_id', $user->id)->exists()) {
+            unset($tabs['clubs']);
+        }
+
+        return $tabs;
     }
 
     private function cursor(Request $request): ?string
@@ -133,21 +188,45 @@ class FeedController extends Controller
      */
     private function batch(User $user, string $tab, ?string $cursor): array
     {
-        return $tab === 'following'
-            ? $this->chronologicalBatch($user, $cursor)
-            : $this->rankedBatch($user, $cursor);
+        return match ($tab) {
+            'following' => $this->chronologicalBatch($user, $cursor, fn ($q) => $q
+                ->whereIn('posts.user_id', fn ($sub) => $sub
+                    ->select('followed_id')
+                    ->from('user_follows')
+                    ->where('follower_id', $user->id))),
+
+            'department' => $this->chronologicalBatch($user, $cursor, fn ($q) => $q
+                ->fromDepartment($user->department)),
+
+            'batch' => $this->chronologicalBatch($user, $cursor, fn ($q) => $q
+                ->fromBatchOf($user)),
+
+            'clubs' => $this->chronologicalBatch($user, $cursor, fn ($q) => $q
+                ->inClubsOf($user)),
+
+            'trending' => $this->rankedBatch($user, $cursor, 'trending'),
+
+            default => $this->rankedBatch($user, $cursor, 'for-you'),
+        };
     }
 
     /** Following tab: reverse-chronological, keyset paginated on (created_at, id). */
-    private function chronologicalBatch(User $user, ?string $cursor): array
+    /**
+     * Newest first, narrowed by whatever the tab is about. Every tab except
+     * For You and Trending is chronological, because a narrow feed is one you
+     * read top to bottom rather than one that needs ranking.
+     */
+    private function chronologicalBatch(User $user, ?string $cursor, ?\Closure $filter = null): array
     {
         [$createdAt, $lastId] = $this->parseChronologicalCursor($cursor);
 
-        $rows = $this->baseQuery($user)
-            ->whereIn('posts.user_id', fn ($q) => $q
-                ->select('followed_id')
-                ->from('user_follows')
-                ->where('follower_id', $user->id))
+        $query = $this->baseQuery($user);
+
+        if ($filter) {
+            $filter($query);
+        }
+
+        $rows = $query
             ->olderThanCursor($createdAt, $lastId)
             ->orderByDesc('posts.created_at')
             ->orderByDesc('posts.id')
@@ -168,15 +247,20 @@ class FeedController extends Controller
         ];
     }
 
-    /** For You tab: ranked ids are snapshotted per session and the cursor is (token, offset) into that list. */
-    private function rankedBatch(User $user, ?string $cursor): array
+    /**
+     * For You and Trending: the ordered ids are snapshotted per session and
+     * the cursor is (token, offset) into that list, so scrolling does not
+     * reshuffle under the reader. The mode is part of the cache key, or the
+     * two tabs would hand each other their snapshots.
+     */
+    private function rankedBatch(User $user, ?string $cursor, string $mode = 'for-you'): array
     {
         [$token, $offset] = $this->parseRankedCursor($cursor);
 
         $ids = Cache::remember(
-            "feed:rank:{$user->id}:{$token}",
+            "feed:rank:{$mode}:{$user->id}:{$token}",
             now()->addMinutes(self::FEED_SESSION_MINUTES),
-            fn () => $this->rankedIds($user)
+            fn () => $mode === 'trending' ? $this->trendingIds($user) : $this->rankedIds($user)
         );
 
         $slice = array_slice($ids, $offset, self::PER_PAGE);
@@ -187,6 +271,22 @@ class FeedController extends Controller
             'nextCursor' => $hasMore ? 'r.'.$token.'.'.($offset + self::PER_PAGE) : null,
             'hasMore' => $hasMore,
         ];
+    }
+
+    /** @return list<int> */
+    private function trendingIds(User $user): array
+    {
+        $at = now();
+
+        return Post::query()
+            ->visible()
+            ->forViewer($user)
+            ->trendingFor($at)
+            ->limit(Post::RANKING_POOL_LIMIT)
+            ->get()
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     private function rankedIds(User $user): array

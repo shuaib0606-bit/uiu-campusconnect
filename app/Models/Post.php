@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
@@ -47,6 +48,12 @@ class Post extends Model
     /** Maximum age in days of a post eligible for ranking. */
     public const RANKING_WINDOW_DAYS = 60;
 
+    /** How far back Trending looks. Older than this is not trending. */
+    public const TRENDING_WINDOW_HOURS = 48;
+
+    /** Hours in which a trending post's engagement score halves. */
+    public const TRENDING_HALF_LIFE_HOURS = 6.0;
+
     /** Number of posts held in one ranked feed session. */
     public const RANKING_POOL_LIMIT = 400;
 
@@ -54,11 +61,12 @@ class Post extends Model
     public const CIRCLE_ID_LIMIT = 1000;
 
     protected $fillable = [
-        'user_id', 'club_id', 'body', 'post_type', 'media_type', 'media_path', 'media_thumb_path',
+        'user_id', 'club_id', 'group_id', 'body', 'post_type', 'code_language',
+        'media_type', 'media_path', 'media_thumb_path',
         'visibility', 'is_deleted', 'deleted_reason',
     ];
 
-    protected $with = ['media'];
+    protected $with = ['media', 'link'];
 
     protected function casts(): array
     {
@@ -73,6 +81,11 @@ class Post extends Model
     public function club(): BelongsTo
     {
         return $this->belongsTo(Club::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(CommunityGroup::class, 'group_id');
     }
 
     public function comments(): HasMany
@@ -111,6 +124,28 @@ class Post extends Model
         return $this->hasMany(PostMedia::class)->orderBy('position')->orderBy('id');
     }
 
+    public function link(): HasOne
+    {
+        return $this->hasOne(PostLink::class);
+    }
+
+    /** Code is a post whose body is the code, with a language beside it. */
+    public function isCode(): bool
+    {
+        return $this->post_type === 'code';
+    }
+
+    /**
+     * Documents attached to this post. Separate from the picture grid because
+     * they are read as a list of files, not looked at.
+     *
+     * @return Collection<int, PostMedia>
+     */
+    public function getDocumentsAttribute(): Collection
+    {
+        return $this->media->where('type', PostMedia::FILE)->values();
+    }
+
     /**
      * Attachments from post_media rows, falling back to the media_path column.
      *
@@ -118,7 +153,8 @@ class Post extends Model
      */
     public function getMediaItemsAttribute(): Collection
     {
-        $rows = $this->media;
+        // Documents are listed separately; this is the picture grid.
+        $rows = $this->media->whereIn('type', ['image', 'video']);
 
         if ($rows->isNotEmpty()) {
             return $rows
@@ -153,9 +189,16 @@ class Post extends Model
         return $this->morphToMany(User::class, 'mentionable', 'mentions');
     }
 
+    /**
+     * Everything a post listing should normally show. Group posts are excluded
+     * here rather than at each call site, because this one scope is what the
+     * feed, search, profiles, clubs and the permalink all go through - so a
+     * group wall cannot leak into any of them by somebody forgetting a filter.
+     * The group page queries posts without this scope.
+     */
     public function scopeVisible($query)
     {
-        return $query->where('is_deleted', false);
+        return $query->where('is_deleted', false)->whereNull('posts.group_id');
     }
 
     /**
@@ -194,7 +237,49 @@ class Post extends Model
                         ->where('user_blocks.blocker_id', $viewerId))
                     ->orWhere(fn ($x) => $x
                         ->whereColumn('user_blocks.blocker_id', 'posts.user_id')
-                        ->where('user_blocks.blocked_id', $viewerId))));
+                        ->where('user_blocks.blocked_id', $viewerId))))
+            ->where(fn ($w) => $this->visibilityClause($w, $viewer));
+    }
+
+    /**
+     * The audience rule for the visibility column. Anything that is not the
+     * viewer's own post has to earn its place here.
+     */
+    protected function visibilityClause($query, $viewer)
+    {
+        $viewerId = (int) $viewer->id;
+
+        $query
+            ->where('posts.user_id', $viewerId)
+            // Only the two restricted values narrow the audience. Anything
+            // else, including the column default, is university-wide, so a
+            // stray value can never make somebody's post disappear.
+            ->orWhereNotIn('posts.visibility', ['department', 'connections']);
+
+        // A department post needs both sides to name the same department.
+        if (! empty($viewer->department)) {
+            $query->orWhere(fn ($d) => $d
+                ->where('posts.visibility', 'department')
+                ->whereExists(fn ($q) => $q
+                    ->selectRaw('1')
+                    ->from('users as author')
+                    ->whereColumn('author.id', 'posts.user_id')
+                    ->where('author.department', $viewer->department)));
+        }
+
+        return $query->orWhere(fn ($c) => $c
+            ->where('posts.visibility', 'connections')
+            ->whereExists(fn ($q) => $q
+                ->selectRaw('1')
+                ->from('friendships')
+                ->where('friendships.status', 'accepted')
+                ->where(fn ($p) => $p
+                    ->where(fn ($x) => $x
+                        ->whereColumn('friendships.requester_id', 'posts.user_id')
+                        ->where('friendships.addressee_id', $viewerId))
+                    ->orWhere(fn ($x) => $x
+                        ->whereColumn('friendships.addressee_id', 'posts.user_id')
+                        ->where('friendships.requester_id', $viewerId)))));
     }
 
     /**
@@ -304,6 +389,83 @@ class Post extends Model
             ->selectRaw("posts.id, {$sql} AS rank_score", $bindings)
             ->orderByDesc('rank_score')
             ->orderByDesc('posts.id');
+    }
+
+    /**
+     * What the campus is actually talking about right now.
+     *
+     * Deliberately impersonal: no friend or follow weighting, so this is the
+     * one tab that shows a student something from outside their own circle.
+     * Engagement is damped by LN so a single post with 400 reactions cannot
+     * own the tab, and decayed steeply so yesterday's argument drops away.
+     */
+    public function scopeTrendingFor($query, ?Carbon $at = null)
+    {
+        $at = $at ?: Carbon::now();
+        $halfLifeMinutes = self::TRENDING_HALF_LIFE_HOURS * 60;
+
+        $sql = '('
+            .'('.self::COMMENT_WEIGHT.' * LN(1 + (SELECT COUNT(*) FROM comments AS tc'
+            .' WHERE tc.post_id = posts.id AND tc.is_deleted = 0))'
+            .' + '.self::REACTION_WEIGHT.' * LN(1 + (SELECT COUNT(*) FROM post_reactions AS tr'
+            .' WHERE tr.post_id = posts.id))'
+            .' + '.self::CIRCLE_REACTION_WEIGHT.' * LN(1 + (SELECT COUNT(*) FROM post_shares AS ts'
+            .' WHERE ts.post_id = posts.id))'
+            .') * POW(0.5, GREATEST(TIMESTAMPDIFF(MINUTE, posts.created_at, ?), 0) / '.$halfLifeMinutes.')'
+            .')';
+
+        return $query
+            ->where('posts.created_at', '>=', $at->copy()->subHours(self::TRENDING_WINDOW_HOURS))
+            ->selectRaw("posts.id, {$sql} AS trend_score", [$at])
+            ->orderByDesc('trend_score')
+            ->orderByDesc('posts.id');
+    }
+
+    /** Posts by people in a given department. */
+    public function scopeFromDepartment($query, ?string $department)
+    {
+        if (! $department) {
+            // Nothing rather than everything: an empty tab is honest, a tab
+            // showing the whole campus under the heading "Department" is not.
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereExists(fn ($q) => $q->selectRaw('1')
+            ->from('users as dept_author')
+            ->whereColumn('dept_author.id', 'posts.user_id')
+            ->where('dept_author.department', $department));
+    }
+
+    /**
+     * Posts by the viewer's own batch. There is no admission-year column, so
+     * a batch is taken as the people in the same department and the same year
+     * of study - which is who a student actually means by "my batch".
+     */
+    public function scopeFromBatchOf($query, ?User $viewer)
+    {
+        if (! $viewer || ! $viewer->department || ! $viewer->year) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereExists(fn ($q) => $q->selectRaw('1')
+            ->from('users as batch_author')
+            ->whereColumn('batch_author.id', 'posts.user_id')
+            ->where('batch_author.department', $viewer->department)
+            ->where('batch_author.year', $viewer->year));
+    }
+
+    /** Posts attached to a club the viewer belongs to. */
+    public function scopeInClubsOf($query, ?User $viewer)
+    {
+        if (! $viewer) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereNotNull('posts.club_id')
+            ->whereExists(fn ($q) => $q->selectRaw('1')
+                ->from('club_members')
+                ->whereColumn('club_members.club_id', 'posts.club_id')
+                ->where('club_members.user_id', $viewer->id));
     }
 
     /** Restrict to posts within RANKING_WINDOW_DAYS of $at. */
