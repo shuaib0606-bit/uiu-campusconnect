@@ -1,5 +1,15 @@
 /** Landing page entry point. Loads the 3D scene in its own chunk after paint. */
 
+/**
+ * Whether the viewer has asked their system for less movement. A slowly
+ * drifting 3D campus is exactly the kind of thing that setting is for, so the
+ * scene is not started at all and the gradient stands in permanently.
+ */
+function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 /** Probes for a usable WebGL context. */
 function hasWebGL() {
     try {
@@ -21,9 +31,11 @@ function boot() {
     const canvas = document.getElementById('cc-landing-canvas');
     if (!canvas) return;
 
-    const stage = canvas.parentElement;
+    // The element carrying the .cc-stage gradient: the hero section on the
+    // landing page, the body on the sign-in page.
+    const stage = canvas.closest('.cc-stage') || canvas.parentElement;
 
-    if (!hasWebGL()) {
+    if (!hasWebGL() || prefersReducedMotion()) {
         if (stage) stage.dataset.fallback = 'true';
         return;
     }
