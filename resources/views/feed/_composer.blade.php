@@ -1,4 +1,9 @@
 @php
+    // Set when the composer is placed on a group wall. A group post has one
+    // audience - the membership - so the visibility selector is replaced by a
+    // label, and a hidden field tells PostController where it belongs.
+    $group = $group ?? null;
+
     $me = auth()->user();
     $firstName = \Illuminate\Support\Str::before($me->full_name, ' ');
 
@@ -29,7 +34,7 @@
 
     {{-- Resting state --}}
     <div class="cc-composer-live flex items-center gap-3">
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ $me->avatar_initials }}</span>
+        <x-user-avatar :user="$me" size="h-10 w-10" text="text-sm" />
         <button type="button" x-ref="trigger" @click="openComposer()"
             class="flex-1 rounded-full px-4 py-2.5 text-left text-[15px] text-ink-500 transition hover:bg-ink-900/[0.06] dark:text-ink-400 dark:hover:bg-white/[0.08]"
             style="background: var(--surface-sunken);">
@@ -42,23 +47,28 @@
         <style>.cc-composer-live { display: none !important; }</style>
         <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
             @csrf
-            <textarea name="body" rows="3" required maxlength="{{ \App\Http\Controllers\PostController::MAX_BODY }}" placeholder="Share something with campus" class="field resize-none"></textarea>
+            @if ($group)<input type="hidden" name="group_id" value="{{ $group->id }}">@endif
+            <textarea name="body" rows="3" required maxlength="{{ \App\Http\Controllers\PostController::MAX_BODY }}" placeholder="{{ $group ? 'Share something with '.$group->name : 'Share something with campus' }}" class="field resize-none"></textarea>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <label class="text-xs text-ink-500 dark:text-ink-400">
                     Photos or videos
-                    <input type="file" name="media[]" accept="image/*,video/*" multiple class="mt-1 block text-xs">
+                    <input type="file" name="media[]" accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.zip" multiple class="mt-1 block text-xs">
                 </label>
-                <select name="visibility" class="field !w-auto !py-1.5 text-xs" aria-label="Who can see this post">
-                    @foreach ($visibilityOptions as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+                @if ($group)
+                    <span class="chip">Group members only</span>
+                @else
+                    <select name="visibility" class="field !w-auto !py-1.5 text-xs" aria-label="Who can see this post">
+                        @foreach ($visibilityOptions as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                @endif
                 <button type="submit" class="btn-primary">Post</button>
             </div>
         </form>
     </noscript>
 
-    <div class="cc-composer-live mt-3 grid grid-cols-2 gap-1 border-t border-ink-100 pt-2 dark:border-ink-800/70">
+    <div class="cc-composer-live mt-3 grid grid-cols-2 gap-1 border-t border-ink-100 pt-2 sm:grid-cols-4 dark:border-ink-800/70">
         <button type="button" @click="openComposer('media')"
             class="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-900/[0.05] dark:text-ink-300 dark:hover:bg-white/[0.06]">
             <x-ui-icon name="image" class="h-5 w-5 text-emerald-500" />
@@ -68,6 +78,16 @@
             class="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-900/[0.05] dark:text-ink-300 dark:hover:bg-white/[0.06]">
             <x-ui-icon name="chart-bar" class="h-5 w-5 text-primary-500" />
             Poll
+        </button>
+        <button type="button" @click="openComposer('media')"
+            class="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-900/[0.05] dark:text-ink-300 dark:hover:bg-white/[0.06]">
+            <x-ui-icon name="paperclip" class="h-5 w-5 text-amber-500" />
+            Document
+        </button>
+        <button type="button" @click="openComposer('code')"
+            class="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-900/[0.05] dark:text-ink-300 dark:hover:bg-white/[0.06]">
+            <x-ui-icon name="file-text" class="h-5 w-5 text-sky-500" />
+            Code
         </button>
     </div>
 
@@ -90,10 +110,11 @@
             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
             class="surface relative z-10 my-6 w-full max-w-xl overflow-hidden">
             @csrf
+            @if ($group)<input type="hidden" name="group_id" value="{{ $group->id }}">@endif
 
             {{-- Multi-select file input. sr-only rather than hidden, to keep it in the tab order. --}}
             <input type="file" id="cc-composer-files" x-ref="input" name="media[]" multiple
-                accept="image/*,video/*" class="sr-only"
+                accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.zip" class="sr-only"
                 @change="addFiles($event.target.files)">
 
             <header class="relative border-b border-ink-100 px-5 py-3.5 dark:border-ink-800/70">
@@ -106,21 +127,26 @@
             <div class="max-h-[70vh] overflow-y-auto px-5 py-4">
                 {{-- author + audience --}}
                 <div class="flex items-center gap-3">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ $me->avatar_initials }}</span>
+                    <x-user-avatar :user="$me" size="h-10 w-10" text="text-sm" />
                     <div class="min-w-0">
                         <p class="truncate text-[15px] font-semibold">{{ $me->full_name }}</p>
                         <div class="relative mt-0.5 inline-flex items-center gap-1.5 rounded-full py-1 pl-2.5 pr-6 text-xs font-medium text-ink-600 dark:text-ink-300"
                             style="background: var(--surface-sunken); border: 1px solid var(--hairline);">
-                            <template x-if="visibility === 'uiu'"><span class="contents"><x-ui-icon name="globe" class="h-3.5 w-3.5" /></span></template>
-                            <template x-if="visibility === 'department'"><span class="contents"><x-ui-icon name="building" class="h-3.5 w-3.5" /></span></template>
-                            <template x-if="visibility === 'connections'"><span class="contents"><x-ui-icon name="lock" class="h-3.5 w-3.5" /></span></template>
-                            <select name="visibility" x-model="visibility" aria-label="Who can see this post"
-                                class="appearance-none bg-transparent text-xs font-medium focus:outline-none">
-                                @foreach ($visibilityOptions as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <x-ui-icon name="chevron-down" class="pointer-events-none absolute right-2 h-3 w-3" />
+                            @if ($group)
+                                <x-ui-icon name="users" class="h-3.5 w-3.5" />
+                                <span class="pr-2">{{ $group->name }} members</span>
+                            @else
+                                <template x-if="visibility === 'uiu'"><span class="contents"><x-ui-icon name="globe" class="h-3.5 w-3.5" /></span></template>
+                                <template x-if="visibility === 'department'"><span class="contents"><x-ui-icon name="building" class="h-3.5 w-3.5" /></span></template>
+                                <template x-if="visibility === 'connections'"><span class="contents"><x-ui-icon name="lock" class="h-3.5 w-3.5" /></span></template>
+                                <select name="visibility" x-model="visibility" aria-label="Who can see this post"
+                                    class="appearance-none bg-transparent text-xs font-medium focus:outline-none">
+                                    @foreach ($visibilityOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <x-ui-icon name="chevron-down" class="pointer-events-none absolute right-2 h-3 w-3" />
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -151,7 +177,7 @@
                                 @mouseenter="mIndex = i"
                                 class="flex w-full items-center gap-2.5 px-3 py-2 text-left transition"
                                 :class="i === mIndex ? 'bg-primary-500/10' : ''">
-                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200" x-text="person.avatar_initials"></span>
+                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold bg-cover bg-center" :class="person.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="person.avatar_url ? `background-image:url('${person.avatar_url}')` : ''" x-text="person.avatar_url ? '' : person.avatar_initials"></span>
                                 <span class="min-w-0">
                                     <span class="block truncate text-sm font-medium" x-text="person.full_name"></span>
                                     <span class="block truncate text-xs text-ink-500 dark:text-ink-400">
@@ -165,6 +191,20 @@
                     <p class="mt-1 text-right text-xs tabular-nums" x-show="showCounter" x-cloak
                         :class="charsLeft < 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-500 dark:text-ink-400'"
                         x-text="charsLeft + ' characters left'"></p>
+                </div>
+
+                {{-- Code mode. The language is the whole switch: its presence
+                     is what makes the post a snippet rather than prose. --}}
+                <div x-show="code" x-cloak class="mt-3 flex flex-wrap items-center gap-2 rounded-2xl p-3" style="background: var(--surface-sunken);">
+                    <span class="text-xs font-medium text-ink-600 dark:text-ink-300">Language</span>
+                    <select name="code_language" x-model="codeLanguage" :disabled="!code"
+                        class="field !w-auto !py-1.5 text-xs">
+                        @foreach (\App\Http\Controllers\PostController::CODE_LANGUAGES as $language)
+                            <option value="{{ $language }}">{{ $language === 'text' ? 'Plain text' : $language }}</option>
+                        @endforeach
+                    </select>
+                    <span class="text-xs text-ink-500 dark:text-ink-400">Paste the snippet into the box above.</span>
+                    <button type="button" class="btn-ghost ml-auto !px-2 !py-1 text-xs" @click="toggleCode(false)">Remove code</button>
                 </div>
 
                 {{-- poll builder --}}
@@ -204,6 +244,16 @@
                                 </template>
                                 <template x-if="item.kind === 'video'">
                                     <video :src="item.url" muted playsinline preload="metadata" class="h-full w-full object-cover"></video>
+                                </template>
+
+                                {{-- A document has nothing to look at, so the
+                                     tile shows what it is instead. --}}
+                                <template x-if="item.kind === 'file'">
+                                    <span class="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
+                                        <x-ui-icon name="paperclip" class="h-6 w-6 text-ink-500 dark:text-ink-400" />
+                                        <span class="line-clamp-2 break-all text-[11px] font-medium" x-text="item.name"></span>
+                                        <span class="text-[10px] text-ink-500 dark:text-ink-400" x-text="humanSize(item.size)"></span>
+                                    </span>
                                 </template>
 
                                 <template x-if="item.kind === 'video'">
@@ -278,6 +328,11 @@
                             :class="poll ? 'text-primary-600 dark:text-primary-300' : ''" title="Poll">
                             <x-ui-icon name="chart-bar" class="h-5 w-5" />
                             <span class="sr-only">Add a poll</span>
+                        </button>
+                        <button type="button" class="btn-icon" @click="toggleCode()"
+                            :class="code ? 'text-primary-600 dark:text-primary-300' : ''" title="Code">
+                            <x-ui-icon name="file-text" class="h-5 w-5" />
+                            <span class="sr-only">Post code</span>
                         </button>
                     </div>
                 </div>
