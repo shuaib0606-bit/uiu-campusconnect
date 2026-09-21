@@ -15,6 +15,17 @@
             Back to Notices
         </a>
 
+        {{-- The banner. Kept as its own card above the notice rather than
+             inside it, because the notice card is a flex row with the
+             coloured priority bar down its left edge and a picture does not
+             belong in that row. Hidden entirely when there is no picture and
+             the viewer could not add one. --}}
+        @if ($canEditMedia || $notice->hasUploadedCover())
+            <div class="surface mb-5 overflow-hidden">
+                <x-media-gallery :item="$notice" type="notice" :can-edit="$canEditMedia" height="h-40 sm:h-56" />
+            </div>
+        @endif
+
         <article class="surface mb-5 flex p-0">
             <div class="accent-bar {{ $important ? 'is-urgent' : 'is-accent' }}"></div>
             <div class="min-w-0 flex-1 p-6 sm:p-7">
@@ -38,7 +49,7 @@
                 <h1 class="mt-3 text-[22px] font-semibold leading-snug tracking-tight sm:text-[26px]">{{ $notice->title }}</h1>
 
                 <div class="mt-4 flex flex-wrap items-center gap-3 border-y border-ink-100 py-3 dark:border-ink-800/70">
-                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">{{ $notice->issuer->avatar_initials }}</span>
+                    <x-user-avatar :user="$notice->issuer" size="h-9 w-9" text="text-xs" />
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold">{{ $notice->issuer->full_name }}</p>
                         <p class="section-sub truncate">{{ ucfirst($notice->issuer->role) }} &middot; Issued {{ $notice->created_at->format('M j, Y \a\t g:i A') }}</p>

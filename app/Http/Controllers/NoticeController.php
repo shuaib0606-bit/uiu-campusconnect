@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Notice;
 use App\Models\NoticeAttachment;
+use App\Support\Gallery;
 use App\Support\Notifier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class NoticeController extends Controller
 {
@@ -26,7 +30,10 @@ class NoticeController extends Controller
         $urgent = $request->boolean('urgent');
         $q = trim((string) $request->get('q', ''));
 
-        $base = Notice::where('status', 'published');
+        // Unscoped notices are campus-wide; a group notice reaches only the
+        // people in that group, which is what lets a course announcement sit
+        // on the same board without being public.
+        $base = Notice::where('status', 'published')->visibleTo($request->user());
 
         $stats = [
             'all' => (clone $base)->count(),
@@ -34,12 +41,12 @@ class NoticeController extends Controller
             'academic' => (clone $base)->whereIn('notice_type', ['exam', 'routine', 'section', 'academic'])->count(),
         ];
 
-        $featured = (clone $base)->with('issuer')->withCount('attachments')
+        $featured = (clone $base)->with(['issuer', 'group', 'media'])->withCount('attachments')
             ->orderByRaw('(is_urgent = 1 OR priority IN (\'urgent\',\'high\')) DESC')
             ->latest()
             ->first();
 
-        $notices = $base->with('issuer')->withCount('attachments')
+        $notices = $base->with(['issuer', 'group', 'media'])->withCount('attachments')
             ->when($type !== '', fn ($q2) => $q2->where('notice_type', $type))
             ->when($department !== '', fn ($q2) => $q2->where('department', 'like', "%{$department}%"))
             ->when($batch !== '', fn ($q2) => $q2->where('batch', 'like', "%{$batch}%"))
@@ -56,26 +63,77 @@ class NoticeController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('notices.index', [
-            'notices' => $notices,
-            'featured' => $featured,
+        return Inertia::render('Notices/Index', [
+            'notices' => $notices->through(fn (Notice $notice) => $this->card($notice)),
+            'featured' => $featured ? [
+                ...$this->card($featured),
+                'month' => $featured->created_at->format('M'),
+                'day' => $featured->created_at->format('d'),
+                'issued_at' => $featured->created_at->format('M j, Y g:i A'),
+            ] : null,
             'stats' => $stats,
             'types' => self::TYPES,
-            'type' => $type,
-            'department' => $department,
-            'batch' => $batch,
-            'semester' => $semester,
-            'urgent' => $urgent,
-            'q' => $q,
-            'canIssue' => $request->user() && $request->user()->canIssueNotices(),
+            'filters' => [
+                'type' => $type,
+                'department' => $department,
+                'batch' => $batch,
+                'semester' => $semester,
+                'urgent' => $urgent,
+                'q' => $q,
+            ],
+            'canIssue' => $request->user() !== null && $request->user()->canIssueNotices(),
         ]);
+    }
+
+    /** One notice row, with the labels and flags the page would otherwise work out. */
+    private function card(Notice $notice): array
+    {
+        return [
+            'id' => $notice->id,
+            'title' => $notice->title,
+            'excerpt' => Str::limit(strip_tags($notice->body), 230),
+            'type_label' => self::TYPES[$notice->notice_type] ?? ucfirst($notice->notice_type),
+            'is_important' => $notice->isImportant(),
+            'attachments_count' => $notice->attachments_count,
+            'meta' => implode(' · ', array_filter([$notice->audience, $notice->department, $notice->batch, $notice->semester])),
+            'issuer' => $notice->issuer->full_name ?? 'University',
+            // Set when this came from a course or club group, so the board can
+            // say where it is from rather than looking like campus news.
+            'from_group' => $notice->group?->name,
+            'group_url' => $notice->group ? route('groups.show', $notice->group) : null,
+            'ago' => $notice->created_at->diffForHumans(),
+            'url' => route('notices.show', $notice),
+            // Only a real upload. Without one the card stays text, rather
+            // than filling the board with generated placeholder squares.
+            'thumb_url' => $notice->hasUploadedCover() ? $notice->coverUrl() : null,
+        ];
     }
 
     public function show(Request $request, Notice $notice)
     {
-        $notice->load(['issuer', 'attachments']);
+        $viewer = $request->user();
+
+        // A class announcement is readable by that class, not by anybody who
+        // guesses the address.
+        abort_unless(
+            Notice::whereKey($notice->getKey())->visibleTo($viewer)->exists(),
+            404
+        );
+
+        $notice->load(['issuer', 'attachments', 'group']);
+
+        // Reading it here counts, so the badge beside Groups clears whether
+        // they opened the group or the board.
+        if ($notice->isScoped() && $viewer) {
+            DB::table('notice_reads')->insertOrIgnore([
+                'notice_id' => $notice->id,
+                'user_id' => $viewer->id,
+                'read_at' => now(),
+            ]);
+        }
 
         $related = Notice::where('status', 'published')
+            ->visibleTo($viewer)
             ->where('id', '!=', $notice->id)
             ->where('notice_type', $notice->notice_type)
             ->withCount('attachments')
@@ -87,6 +145,7 @@ class NoticeController extends Controller
             'notice' => $notice,
             'related' => $related,
             'types' => self::TYPES,
+            'canEditMedia' => Gallery::canEdit($viewer, $notice),
         ]);
     }
 
