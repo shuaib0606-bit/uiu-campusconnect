@@ -51,8 +51,8 @@
 
         <header class="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
             <div class="flex items-center gap-2.5 text-white">
-                <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary-500 font-bold text-white shadow-lg shadow-black/20">U</span>
-                <span class="text-[15px] font-semibold tracking-tight drop-shadow">CampusConnect</span>
+                <img src="{{ asset('img/logo.png') }}" alt="" width="48" height="48" class="h-12 w-12 shrink-0 rounded-xl object-cover shadow-lg shadow-black/20">
+                <span class="text-base font-semibold tracking-tight drop-shadow">CampusConnect</span>
             </div>
 
             <div class="flex items-center gap-2">
@@ -84,12 +84,6 @@
                 Notices, clubs, events, the marketplace and everyone you study with - in one place.
             </p>
 
-            <div class="mt-9 flex flex-wrap items-center gap-3">
-                <a href="{{ route('login') }}"
-                    class="rounded-xl bg-primary-500 px-7 py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-primary-900/30 transition hover:bg-primary-600">
-                    Sign in
-                </a>
-            </div>
         </div>
 
     </section>
