@@ -26,7 +26,9 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('UIU CampusConnect')
-            ->favicon(asset('favicon.svg'))
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('img/logo-192.png'))
             ->colors([
                 'primary' => Color::hex('#c15f3c'),
                 'gray' => Color::hex('#78716c'),
