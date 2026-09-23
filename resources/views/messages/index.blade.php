@@ -1,5 +1,5 @@
 <x-app-layout title="Messages - UIU CampusConnect">
-    <div x-data="messagesPage({ initialWith: {{ (int) request('with', 0) }} })" class="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[300px_1fr_260px]" style="height: calc(100vh - 140px); min-height: 520px;">
+    <div x-data="messagesPage({ initialWith: @js((string) request('with', '')) })" class="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[300px_1fr_260px]" style="height: calc(100vh - 140px); min-height: 520px;">
 
         {{-- Thread list --}}
         <aside class="surface flex min-h-0 flex-col p-4">
@@ -31,7 +31,7 @@
                 </template>
                 <template x-for="t in filteredThreads" :key="t.user_id">
                     <button type="button" @click="openChat(t)" class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-ink-900/[0.04] dark:hover:bg-white/[0.05]" :class="active && active.user_id === t.user_id ? 'bg-primary-500/10' : ''">
-                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200" x-text="t.avatar_initials"></span>
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-semibold bg-cover bg-center" :class="t.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="t.avatar_url ? `background-image:url('${t.avatar_url}')` : ''" x-text="t.avatar_url ? '' : t.avatar_initials"></span>
                         <span class="min-w-0 flex-1">
                             <span class="flex items-center justify-between gap-2">
                                 <span class="truncate text-sm font-semibold" x-text="t.name"></span>
@@ -59,7 +59,7 @@
             <template x-if="active">
                 <div class="flex min-h-0 flex-1 flex-col">
                     <header class="flex items-center gap-3 border-b border-ink-100 dark:border-ink-800/70 px-5 py-3.5">
-                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-xs font-semibold dark:bg-primary-900/40 dark:text-primary-200" x-text="active.avatar_initials"></span>
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-semibold bg-cover bg-center" :class="active.avatar_url ? '' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'" :style="active.avatar_url ? `background-image:url('${active.avatar_url}')` : ''" x-text="active.avatar_url ? '' : active.avatar_initials"></span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-[15px] font-semibold" x-text="active.name"></p>
                             <p class="truncate text-xs text-ink-500 dark:text-ink-400" x-text="active.designation || active.role"></p>
@@ -107,7 +107,7 @@
         {{-- Details rail --}}
         <aside class="hidden lg:flex lg:min-h-0 lg:flex-col lg:gap-4">
             <div class="surface flex items-center gap-3 p-4">
-                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ auth()->user()->avatar_initials }}</span>
+                <x-user-avatar :user="auth()->user()" size="h-11 w-11" text="text-sm" />
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold">{{ auth()->user()->full_name }}</p>
                     <p class="truncate text-xs text-ink-500 dark:text-ink-400">{{ auth()->user()->roleLabel() }}</p>

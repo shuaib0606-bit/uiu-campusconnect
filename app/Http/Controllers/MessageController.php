@@ -34,9 +34,12 @@ class MessageController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'threads' => $threads->values()->map(fn ($t) => [
-                    'user_id' => $t['user']->id,
+                    // The public id, not the database id: the widget
+                    // puts it in /messages/{...} and /profile/{...}.
+                    'user_id' => $t['user']->public_id,
                     'name' => $t['user']->full_name,
                     'avatar_initials' => $t['user']->avatar_initials,
+                    'avatar_url' => $t['user']->avatar_url,
                     'role' => $t['user']->role,
                     'designation' => $t['user']->designation,
                     'last_body' => $t['last']->body ?: ($t['last']->attachment_path ? 'Attachment' : ''),
@@ -54,7 +57,7 @@ class MessageController extends Controller
         $me = $request->user();
 
         if (! $request->expectsJson()) {
-            return redirect()->route('messages.index', ['with' => $user->id]);
+            return redirect()->route('messages.index', ['with' => $user->public_id]);
         }
 
         $messages = Message::query()
@@ -68,9 +71,10 @@ class MessageController extends Controller
 
         return response()->json([
             'other_user' => [
-                'id' => $user->id,
+                'id' => $user->public_id,
                 'name' => $user->full_name,
                 'avatar_initials' => $user->avatar_initials,
+                'avatar_url' => $user->avatar_url,
                 'role' => $user->role,
                 'designation' => $user->designation,
             ],
