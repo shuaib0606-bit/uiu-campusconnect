@@ -9,18 +9,28 @@ use App\Models\UserMute;
 use App\Services\SocialRules;
 use App\Support\Notifier;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class NetworkController extends Controller
 {
+    private const ROLE_LABELS = [
+        'student' => 'Student',
+        'faculty' => 'Faculty',
+        'official' => 'Official',
+        'admin' => 'Admin',
+    ];
+
     public function index(Request $request)
     {
-        $user = $request->user();
+        $me = $request->user();
         $search = trim((string) $request->get('q', ''));
-        $role = $request->get('role', '');
+        $role = (string) $request->get('role', '');
 
         $people = User::query()
-            ->where('id', '!=', $user->id)
+            ->where('id', '!=', $me->id)
             ->where('status', 'active')
             ->with('profile')
             ->when($search !== '', function ($q) use ($search) {
@@ -38,9 +48,7 @@ class NetworkController extends Controller
             ->paginate(24)
             ->withQueryString();
 
-        $roleCounts = User::where('status', 'active')->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role');
-
-        $specialRoles = \Illuminate\Support\Facades\DB::table('club_members')
+        $specialRoles = DB::table('club_members')
             ->join('clubs', 'clubs.id', '=', 'club_members.club_id')
             ->whereNotIn('club_members.club_role', ['member', 'general member', 'participant'])
             ->orderByRaw("CASE LOWER(club_members.club_role) WHEN 'president' THEN 1 WHEN 'vice president' THEN 2 WHEN 'secretary' THEN 3 WHEN 'advisor' THEN 4 WHEN 'moderator' THEN 5 WHEN 'coordinator' THEN 6 ELSE 9 END")
@@ -48,13 +56,85 @@ class NetworkController extends Controller
             ->pluck('club_members.club_role', 'club_members.user_id')
             ->map(fn ($role) => ucwords($role));
 
-        $pendingIncoming = $user->receivedFriendRequests()->where('status', 'pending')->with('requester')->get();
-        $connections = Friendship::where('status', 'accepted')
-            ->where(fn ($q) => $q->where('requester_id', $user->id)->orWhere('addressee_id', $user->id))
-            ->with(['requester', 'addressee'])
-            ->get();
+        // Loaded once for the whole page. Asking per person cost two queries a card.
+        $friendships = Friendship::query()
+            ->where(fn ($q) => $q->where('requester_id', $me->id)->orWhere('addressee_id', $me->id))
+            ->get()
+            ->keyBy(fn (Friendship $f) => $f->requester_id === $me->id ? $f->addressee_id : $f->requester_id);
 
-        return view('network.index', compact('people', 'pendingIncoming', 'connections', 'search', 'role', 'roleCounts', 'specialRoles'));
+        $blocked = UserBlock::query()
+            ->where('blocker_id', $me->id)
+            ->orWhere('blocked_id', $me->id)
+            ->get()
+            ->flatMap(fn (UserBlock $b) => [$b->blocker_id, $b->blocked_id])
+            ->unique()
+            ->flip();
+
+        return Inertia::render('Network/Index', [
+            'people' => $people->through(
+                fn (User $person) => $this->card($me, $person, $friendships, $blocked, $specialRoles)
+            ),
+            'filters' => ['q' => $search, 'role' => $role],
+        ]);
+    }
+
+    /** One directory card, with everything the page needs already decided. */
+    private function card(User $me, User $person, Collection $friendships, Collection $blocked, Collection $specialRoles): array
+    {
+        $friendship = $friendships[$person->id] ?? null;
+        $pending = $friendship !== null && $friendship->status === 'pending';
+
+        $connected = $friendship !== null && $friendship->status === 'accepted';
+        $sent = $pending && $friendship->requester_id === $me->id;
+        $incoming = $pending && $friendship->addressee_id === $me->id;
+
+        [$canRequest] = SocialRules::canRequestConnection($me, $person);
+
+        // A student reaching a member of staff goes through the application desk.
+        $needsPermission = $me->role === 'student' && in_array($person->role, ['faculty', 'official'], true);
+
+        $canMessage = SocialRules::canMessageWith(
+            $me,
+            $person,
+            fn () => isset($blocked[$person->id]),
+            fn () => $connected,
+        );
+
+        $roleLabel = self::ROLE_LABELS[$person->role] ?? ucfirst($person->role ?: 'Member');
+
+        return [
+            'id' => $person->id,
+            'full_name' => $person->full_name,
+            'role_label' => $roleLabel,
+            'title' => $person->designation ?: $roleLabel,
+            'department' => $person->department ?: 'United International University',
+            'avatar_url' => $person->avatar_url,
+            'avatar_initials' => $person->avatar_initials,
+            'special_role' => $specialRoles[$person->id] ?? null,
+            'bio' => Str::limit((string) ($person->profile->bio ?? ''), 110),
+            'skills' => array_slice(
+                array_filter(array_map('trim', explode(',', (string) ($person->profile->skills ?? '')))),
+                0,
+                3
+            ),
+            'profile_url' => route('profile.show', $person),
+            'message_url' => $canMessage ? route('messages.show', $person) : null,
+            'relationship' => match (true) {
+                $connected => 'connected',
+                $sent => 'sent',
+                $incoming => 'incoming',
+                $needsPermission => 'permission',
+                $canRequest => 'connect',
+                default => 'none',
+            },
+            'actions' => [
+                'connect' => route('network.request', $person),
+                'accept' => route('network.accept', $person),
+                'decline' => route('network.decline', $person),
+                'remove' => route('network.remove', $person),
+                'permission' => route('connect-requests.index', ['target' => $person->public_id]),
+            ],
+        ];
     }
 
     public function request(Request $request, User $user)
@@ -148,6 +228,16 @@ class NetworkController extends Controller
         ]);
 
         return $this->respond($request, ['active' => true], $user->full_name.' has been blocked.');
+    }
+
+    /** Lifts a block. Only the person who set it can undo it. */
+    public function unblock(Request $request, User $user)
+    {
+        UserBlock::where('blocker_id', $request->user()->id)
+            ->where('blocked_id', $user->id)
+            ->delete();
+
+        return $this->respond($request, ['active' => false], $user->full_name.' has been unblocked.');
     }
 
     /** Time-boxed mute. Muting again while a mute is live lifts it. */
