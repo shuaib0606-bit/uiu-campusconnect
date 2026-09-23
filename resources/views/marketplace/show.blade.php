@@ -12,16 +12,11 @@
         </a>
 
         <article class="surface mb-5 overflow-hidden">
-            <div class="relative h-64 w-full bg-cover bg-center bg-gradient-to-br from-primary-500/15 to-primary-700/25 sm:h-80" @if ($item->photo_path) style="background-image:url('{{ Storage::url($item->photo_path) }}')" @endif>
-                @unless ($item->photo_path)
-                    <span class="absolute inset-0 grid place-items-center text-primary-500/40 dark:text-primary-300/30">
-                        <x-ui-icon name="shopping-bag" class="h-16 w-16" />
-                    </span>
-                @endunless
+            <x-media-gallery :item="$item" type="marketplace" :can-edit="$canEditMedia">
                 @unless ($isAvailable)
-                    <span class="absolute right-3 top-3 rounded-full bg-ink-900/85 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">Sold</span>
+                    <span class="pointer-events-none absolute right-3 top-3 rounded-full bg-ink-900/85 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">Sold</span>
                 @endunless
-            </div>
+            </x-media-gallery>
 
             <div class="p-6 sm:p-7">
                 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -57,7 +52,7 @@
         <section class="surface mb-5 p-6">
             <h2 class="mb-3 text-[15px] font-semibold">Seller</h2>
             <div class="flex flex-wrap items-center gap-3">
-                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary-100 text-sm font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">{{ $item->seller->avatar_initials }}</span>
+                <x-user-avatar :user="$item->seller" size="h-11 w-11" text="text-sm" />
                 <div class="min-w-0 flex-1">
                     <a href="{{ route('profile.show', $item->seller) }}" class="truncate text-sm font-semibold hover:underline">{{ $item->seller->full_name }}</a>
                     <p class="section-sub truncate">{{ $item->seller->department ?: ucfirst($item->seller->role) }}</p>
@@ -77,7 +72,7 @@
                             <span class="chip shrink-0">Marked sold</span>
                         @endif
                     @else
-                        <a href="{{ route('messages.index', ['with' => $item->user_id]) }}" class="btn-primary shrink-0">
+                        <a href="{{ route('messages.index', ['with' => $item->seller->public_id]) }}" class="btn-primary shrink-0">
                             <x-ui-icon name="message" class="h-4 w-4" />
                             Message Seller
                         </a>
@@ -98,7 +93,7 @@
                 <div class="space-y-2">
                     @foreach ($related as $other)
                         <a href="{{ route('marketplace.show', $other) }}" class="surface-flat surface-hover flex items-center gap-3 rounded-xl p-3.5">
-                            <span class="h-11 w-11 shrink-0 rounded-lg bg-cover bg-center bg-gradient-to-br from-primary-500/15 to-primary-700/25" @if ($other->photo_path) style="background-image:url('{{ Storage::url($other->photo_path) }}')" @endif></span>
+                            <span class="h-11 w-11 shrink-0 rounded-lg bg-cover bg-center" style="background-image:url('{{ $other->coverUrl() }}')"></span>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium">{{ $other->title }}</p>
                                 <p class="section-sub truncate">{{ $other->seller->full_name }}</p>

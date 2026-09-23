@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\MarketplaceItem;
+use App\Support\Gallery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class MarketplaceController extends Controller
 {
@@ -22,28 +25,49 @@ class MarketplaceController extends Controller
                     $qr2->where('title', 'like', "%{$q}%")->orWhere('description', 'like', "%{$q}%");
                 });
             })
-            ->with('seller')
+            ->with('seller', 'media')
             ->latest()
             ->paginate(16)
             ->withQueryString();
 
-        return view('marketplace.index', [
-            'items' => $items,
+        $me = $request->user();
+
+        return Inertia::render('Marketplace/Index', [
+            'items' => $items->through(fn (MarketplaceItem $item) => [
+                'id' => $item->id,
+                'title' => $item->title,
+                'description' => Str::limit($item->description, 100),
+                'cover_url' => $item->coverUrl(),
+                'gallery_count' => $item->galleryCount(),
+                'category_label' => MarketplaceItem::CATEGORIES[$item->category] ?? $item->category,
+                // A listing with no price is an invitation to make an offer.
+                'price_label' => $item->price > 0 ? '৳'.number_format($item->price) : 'Negotiable',
+                'location' => $item->location ?: 'Campus',
+                'seller' => [
+                    'full_name' => $item->seller->full_name,
+                    'avatar_url' => $item->seller->avatar_url,
+                    'avatar_initials' => $item->seller->avatar_initials,
+                ],
+                'url' => route('marketplace.show', $item),
+                'is_mine' => $me !== null && $item->user_id === $me->id,
+                'message_url' => route('messages.index', ['with' => $item->seller?->public_id]),
+                'sold_url' => route('marketplace.sold', $item),
+            ]),
             'categories' => MarketplaceItem::CATEGORIES,
-            'category' => $category,
-            'q' => $q,
+            'filters' => ['q' => $q, 'category' => $category],
             'total' => $total,
         ]);
     }
 
     public function show(Request $request, MarketplaceItem $item)
     {
-        $item->load('seller');
+        $item->load('seller', 'media');
+        $viewer = $request->user();
 
         $related = MarketplaceItem::where('status', 'available')
             ->where('id', '!=', $item->id)
             ->where('category', $item->category)
-            ->with('seller')
+            ->with('seller', 'media')
             ->latest()
             ->limit(3)
             ->get();
@@ -52,6 +76,7 @@ class MarketplaceController extends Controller
             'item' => $item,
             'related' => $related,
             'categories' => MarketplaceItem::CATEGORIES,
+            'canEditMedia' => $viewer !== null && ($item->user_id === $viewer->id || $viewer->isAdmin()),
         ]);
     }
 
@@ -64,13 +89,22 @@ class MarketplaceController extends Controller
             'category' => ['required', 'string', 'max:80'],
             'location' => ['nullable', 'string', 'max:190'],
             'photo' => ['nullable', 'image', 'max:10240'],
+            'photos' => ['nullable', 'array', 'max:'.Gallery::LIMIT],
+            'photos.*' => ['image', 'max:10240'],
         ]);
 
-        if ($request->hasFile('photo')) {
-            $data['photo_path'] = $request->file('photo')->store('marketplace', 'public');
-        }
+        unset($data['photo'], $data['photos']);
 
-        MarketplaceItem::create([...$data, 'user_id' => $request->user()->id]);
+        $item = MarketplaceItem::create([
+            ...$data,
+            // A blank price arrives as null and the column does not take null.
+            'price' => $data['price'] ?? 0,
+            'user_id' => $request->user()->id,
+        ]);
+
+        foreach (Gallery::filesFrom($request) as $file) {
+            Gallery::add($item, $file, $request->user()->id);
+        }
 
         return back()->with('success', 'Listing published.');
     }

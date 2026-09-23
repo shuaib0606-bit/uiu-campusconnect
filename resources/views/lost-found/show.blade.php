@@ -12,17 +12,12 @@
         </a>
 
         <article class="surface mb-5 overflow-hidden">
-            <div class="relative h-64 w-full bg-cover bg-center {{ $isLost ? 'bg-gradient-to-br from-red-500/10 to-red-700/20' : 'bg-gradient-to-br from-emerald-500/10 to-emerald-700/20' }} sm:h-80" @if ($item->photo_path) style="background-image:url('{{ Storage::url($item->photo_path) }}')" @endif>
-                @unless ($item->photo_path)
-                    <span class="absolute inset-0 grid place-items-center {{ $isLost ? 'text-red-500/40 dark:text-red-300/30' : 'text-emerald-500/40 dark:text-emerald-300/30' }}">
-                        <x-ui-icon name="inbox" class="h-16 w-16" />
-                    </span>
-                @endunless
-                <span class="absolute left-0 top-4 rounded-r-full py-1 pl-4 pr-4 text-xs font-bold uppercase tracking-wide text-white shadow-sm {{ $isLost ? 'bg-red-500' : 'bg-emerald-500' }}">{{ $item->type }}</span>
+            <x-media-gallery :item="$item" type="lost-found" :can-edit="$canEditMedia">
+                <span class="pointer-events-none absolute left-0 top-4 rounded-r-full py-1 pl-4 pr-4 text-xs font-bold uppercase tracking-wide text-white shadow-sm {{ $isLost ? 'bg-red-500' : 'bg-emerald-500' }}">{{ $item->type }}</span>
                 @unless ($isOpen)
-                    <span class="absolute right-3 top-3 rounded-full bg-ink-900/85 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">Resolved</span>
+                    <span class="pointer-events-none absolute right-3 top-3 rounded-full bg-ink-900/85 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">Reunited</span>
                 @endunless
-            </div>
+            </x-media-gallery>
 
             <div class="p-6 sm:p-7">
                 <h1 class="text-[22px] font-semibold leading-snug tracking-tight sm:text-[26px]">{{ $item->title }}</h1>
@@ -38,7 +33,7 @@
                     </div>
                     <div class="surface-flat rounded-xl px-3.5 py-2.5">
                         <p class="text-[11px] font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">Status</p>
-                        <p class="mt-0.5 truncate text-sm font-medium {{ $isOpen ? $accentText : '' }}">{{ $isOpen ? 'Still open' : 'Resolved' }}</p>
+                        <p class="mt-0.5 truncate text-sm font-medium {{ $isOpen ? $accentText : '' }}">{{ $isOpen ? 'Still open' : 'Reunited' }}</p>
                     </div>
                 </div>
 
@@ -48,7 +43,7 @@
                 </div>
 
                 <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-ink-100 pt-4 dark:border-ink-800/70">
-                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full {{ $accentSoft }} text-xs font-bold {{ $accentText }}">{{ $item->user->avatar_initials }}</span>
+                    <x-user-avatar :user="$item->user" size="h-9 w-9" text="text-xs" />
                     <div class="min-w-0">
                         <a href="{{ route('profile.show', $item->user) }}" class="truncate text-sm font-semibold hover:underline">{{ $item->user->full_name }}</a>
                         <p class="section-sub truncate">Posted {{ $item->created_at->format('M j, Y g:i A') }} &middot; {{ $item->created_at->diffForHumans() }}</p>
@@ -58,36 +53,70 @@
         </article>
 
         @auth
-            @if ($isOwner)
+            @if ($canManage)
                 <section class="surface p-6">
                     <div class="section-heading mb-4">
                         <div>
-                            <h2 class="text-[15px] font-semibold">Claims on your post</h2>
+                            <h2 class="text-[15px] font-semibold">{{ $isOwner ? 'Claims on your post' : 'Claims on this post' }}</h2>
                             <p class="section-sub">People who believe this item is theirs, or who can return it.</p>
                         </div>
-                        @if ($isOpen)
-                            <form method="POST" action="{{ route('lost-found.resolve', $item) }}">
-                                @csrf
-                                <button type="submit" class="btn-secondary whitespace-nowrap">
-                                    <x-ui-icon name="check-circle" class="h-4 w-4" />
-                                    Mark Resolved
-                                </button>
-                            </form>
-                        @endif
+                        <form method="POST" action="{{ $isOpen ? route('lost-found.resolve', $item) : route('lost-found.reopen', $item) }}">
+                            @csrf
+                            <button type="submit" class="btn-secondary whitespace-nowrap">
+                                <x-ui-icon name="{{ $isOpen ? 'check-circle' : 'refresh' }}" class="h-4 w-4" />
+                                {{ $isOpen ? 'Mark Reunited' : 'Reopen Listing' }}
+                            </button>
+                        </form>
                     </div>
+
+                    @unless ($isOpen)
+                        <div class="mb-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+                            <x-ui-icon name="check-circle" class="h-4 w-4 shrink-0" />
+                            <span>Reunited{{ $item->resolved_at ? ' on '.$item->resolved_at->format('M j, Y') : '' }}{{ $item->resolver && $item->resolver->id !== $item->user_id ? ', marked by '.$item->resolver->full_name : '' }}.</span>
+                        </div>
+                    @endunless
 
                     <div class="space-y-3">
                         @forelse ($claims as $claim)
+                            @php
+                                $claimPending = $claim->status === 'pending';
+                                $claimChip = match ($claim->status) {
+                                    'accepted' => '!bg-emerald-500/10 !text-emerald-700 dark:!text-emerald-300',
+                                    'rejected' => '!bg-red-500/10 !text-red-700 dark:!text-red-300',
+                                    default => '',
+                                };
+                            @endphp
                             <div class="surface-flat rounded-xl p-3.5">
                                 <div class="flex items-center gap-3">
-                                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">{{ $claim->user->avatar_initials }}</span>
+                                    <x-user-avatar :user="$claim->user" size="h-8 w-8" text="text-[10px]" />
                                     <div class="min-w-0 flex-1">
                                         <a href="{{ route('profile.show', $claim->user) }}" class="truncate text-sm font-semibold hover:underline">{{ $claim->user->full_name }}</a>
                                         <p class="section-sub">{{ $claim->created_at->diffForHumans() }}</p>
                                     </div>
-                                    <a href="{{ route('messages.index', ['with' => $claim->user_id]) }}" class="btn-secondary shrink-0 !px-3 !py-1.5 text-xs">Reply</a>
+                                    @unless ($claimPending)
+                                        <span class="chip shrink-0 {{ $claimChip }}">{{ ucfirst($claim->status) }}</span>
+                                    @endunless
+                                    <a href="{{ route('messages.index', ['with' => $claim->user?->public_id]) }}" class="btn-secondary shrink-0 !px-3 !py-1.5 text-xs">Reply</a>
                                 </div>
                                 <p class="mt-2 text-sm text-ink-600 dark:text-ink-300">{{ $claim->message }}</p>
+
+                                @if ($claimPending)
+                                    {{-- Until now a claim could be read but never answered. --}}
+                                    <div class="mt-3 flex flex-wrap gap-2 border-t border-ink-100 pt-3 dark:border-ink-800/70">
+                                        <form method="POST" action="{{ route('lost-found.claims.review', $claim) }}">
+                                            @csrf
+                                            <input type="hidden" name="claim_action" value="accept">
+                                            <button type="submit" class="btn-primary !px-3 !py-1.5 text-xs">
+                                                <x-ui-icon name="check" class="h-3.5 w-3.5" />This is theirs
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('lost-found.claims.review', $claim) }}">
+                                            @csrf
+                                            <input type="hidden" name="claim_action" value="reject">
+                                            <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs">Not a match</button>
+                                        </form>
+                                    </div>
+                                @endif
                             </div>
                         @empty
                             <div class="empty-state">
@@ -143,7 +172,7 @@
                         <span>Your claim has been sent to {{ $item->user->full_name }}.</span>
                     </div>
 
-                    <a href="{{ route('messages.index', ['with' => $item->user_id]) }}" class="btn-secondary mt-3 inline-flex">
+                    <a href="{{ route('messages.index', ['with' => $item->user?->public_id]) }}" class="btn-secondary mt-3 inline-flex">
                         <x-ui-icon name="message" class="h-4 w-4" />
                         Message directly
                     </a>
@@ -156,7 +185,7 @@
                         </span>
                         <div>
                             <h2 class="text-[15px] font-semibold">This one is settled</h2>
-                            <p class="section-sub">The poster marked this item as resolved, so no new claims are needed.</p>
+                            <p class="section-sub">Marked reunited{{ $item->resolved_at ? ' on '.$item->resolved_at->format('M j, Y') : '' }}, so no new claims are needed.</p>
                         </div>
                     </div>
                 </section>
