@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Club;
 use App\Models\Comment;
 use App\Models\Notification;
+use App\Models\User;
 use App\Services\SocialRules;
 use App\Support\Notifier;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class NotificationController extends Controller
 {
@@ -81,13 +83,41 @@ class NotificationController extends Controller
             'Earlier' => $notifications->filter(fn ($n) => ! $n->created_at || $n->created_at->lessThan(now()->subWeek())),
         ];
 
-        return view('notifications.index', [
-            'groups' => array_filter($groups, fn ($g) => $g->isNotEmpty()),
+        $buckets = [];
+
+        foreach ($groups as $label => $rows) {
+            if ($rows->isNotEmpty()) {
+                $buckets[] = ['label' => $label, 'items' => $rows->map(fn (Notification $n) => $this->card($n))->values()];
+            }
+        }
+
+        return Inertia::render('Notifications/Index', [
+            'buckets' => $buckets,
             'isEmpty' => $notifications->isEmpty(),
             'counts' => $counts,
             'filter' => $filter,
-            'filters' => self::FILTERS,
+            // Only the labels reach the page; the type lists behind them stay here.
+            'tabs' => collect(self::FILTERS)->map(fn ($meta) => $meta['label']),
         ]);
+    }
+
+    /** One row, with the actor and icon already resolved. */
+    private function card(Notification $notification): array
+    {
+        return [
+            'id' => $notification->id,
+            'message' => $notification->message,
+            'ago' => $notification->created_at?->diffForHumans(),
+            'is_read' => (bool) $notification->is_read,
+            'is_aggregated' => $notification->isAggregated(),
+            'group_count' => $notification->group_count,
+            'icon' => $notification->iconName(),
+            'actor' => [
+                'avatar_url' => $notification->actor?->avatar_url,
+                'avatar_initials' => $notification->actor?->avatar_initials ?? 'UIU',
+            ],
+            'url' => route('notifications.go', $notification),
+        ];
     }
 
     public function markAllRead(Request $request)
@@ -128,11 +158,11 @@ class NotificationController extends Controller
             'club' => ($club = $notification->entity_id ? Club::find($notification->entity_id) : null)
                 ? redirect()->route('clubs.show', $club)
                 : redirect()->route('clubs.index'),
-            'message' => $notification->actor_id
-                ? redirect()->route('messages.index', ['with' => $notification->actor_id])
+            'message' => ($actor = $notification->actor_id ? User::find($notification->actor_id) : null)
+                ? redirect()->route('messages.index', ['with' => $actor->public_id])
                 : redirect()->route('messages.index'),
-            'user', 'friendship', 'connection' => $notification->actor_id
-                ? redirect()->route('profile.show', $notification->actor_id)
+            'user', 'friendship', 'connection' => ($actor = $notification->actor_id ? User::find($notification->actor_id) : null)
+                ? redirect()->route('profile.show', $actor)
                 : redirect()->route('network.index'),
             default => redirect()->route('notifications.index'),
         };
