@@ -23,3 +23,16 @@ yarn-error.log
 !/storage/framework/views/.gitignore
 /storage/app/public/*
 !/storage/app/public/.gitignore
+.DS_Store
+_to_delete/
+
+# Any copy of the environment file carries the database password and the
+# AI provider keys, whatever it is named. .env.example holds no secrets
+# and is the one exception.
+.env.*
+!.env.example
+
+# Working folders and rollback copies from development sessions.
+/_incoming/
+/_to_delete/
+/composer.lock.before-*
