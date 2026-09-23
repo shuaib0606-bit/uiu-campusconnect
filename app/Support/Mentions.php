@@ -151,7 +151,7 @@ class Mentions
                 return $m[0];
             }
 
-            return '<a href="'.e(route('profile.show', $user->id)).'"'
+            return '<a href="'.e(route('profile.show', $user)).'"'
                 .' class="font-medium text-primary-600 hover:underline dark:text-primary-300"'
                 .' title="'.e($user->full_name).'">'
                 .e('@'.$m[1])
