@@ -1,4 +1,15 @@
-@php $p = $user->profile; $showAcademic = in_array($user->role, ['faculty', 'official', 'admin'], true); @endphp
+@php
+    $p = $user->profile;
+    $showAcademic = in_array($user->role, ['faculty', 'official', 'admin'], true);
+    $levels = \App\Support\Visibility::LABELS;
+    // A small "who sees this" menu beside a field.
+    $who = function (string $name) use ($p, $levels) {
+        $current = $p?->{$name} ?: \App\Support\Visibility::EVERYONE;
+        $options = collect($levels)->map(fn ($label, $value) => '<option value="'.$value.'"'.($value === $current ? ' selected' : '').'>'.e($label).'</option>')->implode('');
+
+        return new \Illuminate\Support\HtmlString('<select name="'.$name.'" class="field w-auto !py-1 !text-xs" aria-label="Who can see this">'.$options.'</select>');
+    };
+@endphp
 <x-app-layout title="Edit profile - UIU CampusConnect">
     <div class="mx-auto max-w-2xl">
         <div class="surface mb-5 flex flex-wrap items-center justify-between gap-3 p-6">
@@ -38,10 +49,21 @@
                     <div><label class="mb-1.5 block text-sm font-medium">Designation</label><input name="designation" value="{{ $user->designation }}" class="field"></div>
                 </div>
 
-                <div><label class="mb-1.5 block text-sm font-medium">Bio</label><textarea name="bio" rows="4" placeholder="Write a short intro..." class="field">{{ $p?->bio }}</textarea></div>
+                <div x-data="{ bio: @js(old('bio', $p?->bio ?? '')) }">
+                    <div class="mb-1.5 flex items-baseline justify-between">
+                        <label class="block text-sm font-medium">Bio</label>
+                        <span class="text-xs" :class="bio.length > 300 ? 'text-red-600' : 'text-ink-400'" x-text="`${bio.length} / 300`"></span>
+                    </div>
+                    <textarea name="bio" rows="3" x-model="bio" placeholder="One or two lines about you" class="field"></textarea>
+                    <p class="mt-1 text-xs text-ink-400">Shown at the top of your profile. @if ($showAcademic)Longer text - biography, education, publications - belongs in your <a href="{{ route('academic.edit') }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-300">academic profile</a>.@endif</p>
+                    @error('bio')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="mb-1.5 block text-sm font-medium">Room / office / location</label><input name="room" value="{{ $p?->room }}" placeholder="Room, office, or location" class="field"></div>
+                    <div>
+                        <div class="mb-1.5 flex items-center justify-between gap-2"><label class="block text-sm font-medium">Room / office</label>@if ($showAcademic){{ $who('room_visibility') }}@endif</div>
+                        <input name="room" value="{{ $p?->room }}" placeholder="Room, office, or location" class="field">
+                    </div>
                     <div><label class="mb-1.5 block text-sm font-medium">Phone</label><input name="phone" value="{{ $p?->phone }}" placeholder="Optional phone" class="field"></div>
                 </div>
 
@@ -50,11 +72,31 @@
 
                 @if ($showAcademic)
                     <div class="border-t border-ink-100 pt-4 dark:border-ink-800/70">
-                        <h2 class="mb-3 text-sm font-semibold">Academic / official details</h2>
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h2 class="text-sm font-semibold">Academic / official details</h2>
+                            @if (in_array($user->role, ['faculty', 'official'], true))
+                                <a href="{{ route('academic.edit') }}" class="text-sm font-bold text-primary-600 hover:underline dark:text-primary-300">Edit education, publications &amp; more &rarr;</a>
+                            @endif
+                        </div>
+                        <p class="mb-3 text-xs text-ink-400">Everyone = anyone who opens your profile. UIU members = signed-in students and staff. Only me = hidden.</p>
                         <div class="space-y-4">
-                            <div><label class="mb-1.5 block text-sm font-medium">Office hours</label><input name="office_hours" value="{{ $p?->office_hours }}" placeholder="Sun/Tue 2:00 PM - 4:00 PM" class="field"></div>
-                            <div><label class="mb-1.5 block text-sm font-medium">Research interests</label><input name="research_interests" value="{{ $p?->research_interests }}" placeholder="Machine learning, HCI, data science" class="field"></div>
-                            <div><label class="mb-1.5 block text-sm font-medium">Courses taught</label><input name="courses_taught" value="{{ $p?->courses_taught }}" placeholder="CSE101, CSE301" class="field"></div>
+                            <div>
+                                <div class="mb-1.5 flex items-center justify-between gap-2"><label class="block text-sm font-medium">PABX extension</label>{{ $who('pabx_visibility') }}</div>
+                                <input name="pabx" value="{{ $p?->pabx }}" placeholder="3122" class="field">
+                            </div>
+                            <div>
+                                <div class="mb-1.5 flex items-center justify-between gap-2"><label class="block text-sm font-medium">Office hours</label>{{ $who('office_hours_visibility') }}</div>
+                                <input name="office_hours" value="{{ $p?->office_hours }}" placeholder="Sun/Tue 2:00 PM - 4:00 PM" class="field">
+                            </div>
+                            <div>
+                                <div class="mb-1.5 flex items-center justify-between gap-2"><label class="block text-sm font-medium">Research interests</label>{{ $who('research_visibility') }}</div>
+                                <input name="research_interests" value="{{ $p?->research_interests }}" placeholder="Machine learning, HCI, data science" class="field">
+                                <p class="mt-1 text-xs text-ink-400">Separate with commas - they show as tags.</p>
+                            </div>
+                            <div>
+                                <div class="mb-1.5 flex items-center justify-between gap-2"><label class="block text-sm font-medium">Courses taught</label>{{ $who('courses_visibility') }}</div>
+                                <input name="courses_taught" value="{{ $p?->courses_taught }}" placeholder="CSE101, CSE301" class="field">
+                            </div>
                             <div><label class="mb-1.5 block text-sm font-medium">Academic resources</label><textarea name="academic_resources" rows="3" placeholder="Links or notes for students..." class="field">{{ $p?->academic_resources }}</textarea></div>
                         </div>
                     </div>

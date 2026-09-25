@@ -7,6 +7,11 @@
     $canSeeStudentId = $isOwn || ! $p || $p->show_student_id;
     $canSeePhone = $isOwn || ($p && $p->show_phone);
     $canSeeFriends = $isOwn || ! $p || $p->show_friend_list;
+    $viewer = auth()->user();
+    // Room, PABX, office hours, courses and research each have their own
+    // visibility; the owner sees everything, with a note on what is hidden.
+    $detail = fn (string $field) => $p?->visible($field, $viewer);
+    $visibilityNote = [\App\Support\Visibility::ONLY_ME => 'Only you', \App\Support\Visibility::MEMBERS => 'UIU members'];
     [$canRequestNow] = $canRequest;
     $statChips = [
         [$friendCount, 'friends'],
@@ -85,21 +90,63 @@
                             <span class="btn-secondary cursor-default">Request sent</span>
                             <form method="POST" action="{{ route('network.remove', $profileUser) }}"><button type="submit" class="btn-secondary">Cancel</button></form>
                         @elseif (auth()->user()->role === 'student' && in_array($profileUser->role, ['faculty', 'official'], true))
-                            <a href="{{ route('connect-requests.index', ['target_id' => $profileUser->id]) }}" class="btn-primary">Request permission to connect</a>
+                            <a href="{{ route('connect-requests.index', ['target' => $profileUser->public_id]) }}" class="btn-primary">Request permission to connect</a>
                         @elseif ($canRequestNow)
                             <form method="POST" action="{{ route('network.request', $profileUser) }}"><button type="submit" class="btn-primary"><x-ui-icon name="user-plus" class="h-4 w-4" />Add friend</button></form>
                         @endif
 
-                        <form method="POST" action="{{ route('network.follow', $profileUser) }}"><button type="submit" class="btn-secondary">{{ $isFollowing ? 'Following' : 'Follow' }}</button></form>
+                        <form method="POST" action="{{ route('network.follow', $profileUser) }}">@csrf<button type="submit" class="btn-secondary">{{ $isFollowing ? 'Following' : 'Follow' }}</button></form>
                         @if ($canMessage)
-                            <a href="{{ route('messages.index', ['with' => $profileUser->id]) }}" class="btn-secondary"><x-ui-icon name="message" class="h-4 w-4" />Message</a>
+                            <a href="{{ route('messages.index', ['with' => $profileUser->public_id]) }}" class="btn-secondary"><x-ui-icon name="message" class="h-4 w-4" />Message</a>
                         @endif
 
-                        <div class="relative" x-data="{ open: false }">
-                            <button type="button" class="btn-icon !h-11 !w-11 border border-ink-100 dark:border-ink-800/70" @click="open = !open" @click.outside="open = false"><x-ui-icon name="dots" class="h-5 w-5" /></button>
-                            <div x-show="open" x-cloak class="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-ink-100 py-1 text-sm shadow-lifted dark:border-ink-800 bg-[var(--surface-raised)]">
-                                <form method="POST" action="{{ route('network.block', $profileUser) }}"><button type="submit" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5"><x-ui-icon name="x" class="h-4 w-4" />Block</button></form>
-                                <form method="POST" action="{{ route('profile.report', $profileUser) }}" x-data @submit="if(!confirm('Report this profile?')) $event.preventDefault();"><input type="hidden" name="reason" value="Reported from profile"><button type="submit" class="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"><x-ui-icon name="flag" class="h-4 w-4" />Report</button></form>
+                        <div class="relative" x-data="{ open: false, reporting: false, confirmBlock: false }"
+                             @click.outside="open = false; reporting = false; confirmBlock = false">
+                            <button type="button" class="btn-icon !h-11 !w-11 border border-ink-100 dark:border-ink-800/70" @click="open = !open"><x-ui-icon name="dots" class="h-5 w-5" /></button>
+                            <div x-show="open" x-cloak class="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-xl border border-ink-100 py-1 text-sm shadow-lifted dark:border-ink-800 bg-[var(--surface-raised)]">
+                                @if ($isBlocked)
+                                    {{-- Blocking used to be one-way with no route back. --}}
+                                    <form method="POST" action="{{ route('network.unblock', $profileUser) }}" x-show="!reporting">
+                                        @csrf
+                                        <button type="submit" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5">
+                                            <x-ui-icon name="check-circle" class="h-4 w-4" />Unblock
+                                        </button>
+                                    </form>
+                                @else
+                                    <button type="button" x-show="!confirmBlock && !reporting" @click="confirmBlock = true" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5">
+                                        <x-ui-icon name="ban" class="h-4 w-4" />Block
+                                    </button>
+
+                                    <div x-show="confirmBlock" x-cloak class="px-4 py-2.5">
+                                        <p class="text-xs text-ink-600 dark:text-ink-300">Block {{ $profileUser->full_name }}? You will no longer see each other's posts.</p>
+                                        <form method="POST" action="{{ route('network.block', $profileUser) }}" class="mt-2 flex gap-2">
+                                            @csrf
+                                            <button type="submit" class="btn-danger !px-3 !py-1.5 text-xs">Block</button>
+                                            <button type="button" @click="confirmBlock = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>
+                                        </form>
+                                    </div>
+                                @endif
+
+                                <button type="button" x-show="!confirmBlock && !reporting" @click="reporting = true" class="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                                    <x-ui-icon name="flag" class="h-4 w-4" />Report
+                                </button>
+
+                                <form x-show="reporting" x-cloak method="POST" action="{{ route('profile.report', $profileUser) }}" class="px-4 py-2.5">
+                                    @csrf
+                                    <span class="block text-xs font-medium text-ink-600 dark:text-ink-300">Why are you reporting this profile?</span>
+                                    <select name="reason" required class="field mt-1.5 !py-1.5 text-xs">
+                                        <option value="">Choose a reason</option>
+                                        <option>Fake or impersonating account</option>
+                                        <option>Harassment or bullying</option>
+                                        <option>Inappropriate profile content</option>
+                                        <option>Spam account</option>
+                                        <option>Something else</option>
+                                    </select>
+                                    <div class="mt-2 flex gap-2">
+                                        <button type="submit" class="btn-primary !px-3 !py-1.5 text-xs">Send report</button>
+                                        <button type="button" @click="reporting = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     @else
@@ -110,7 +157,12 @@
 
             {{-- Tabs --}}
             <nav class="flex gap-1 overflow-x-auto px-4 sm:px-6">
-                @foreach (['all' => 'All', 'about' => 'About', 'friends' => 'Friends', 'photos' => 'Photos', 'posts' => 'Posts', 'more' => 'More'] as $key => $label)
+                @php
+                    $tabs = ['all' => 'All', 'about' => 'About'];
+                    if ($hasAcademicTab) { $tabs['academic'] = 'Academic'; }
+                    $tabs += ['friends' => 'Friends', 'photos' => 'Photos', 'posts' => 'Posts', 'more' => 'More'];
+                @endphp
+                @foreach ($tabs as $key => $label)
                     <a href="{{ $tabUrl($key) }}" class="flex h-[52px] shrink-0 items-center border-b-[3px] px-3.5 text-[15px] font-bold {{ $tab === $key ? 'border-primary-500 text-primary-600 dark:text-primary-300' : 'border-transparent text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white' }}">{{ $label }}</a>
                 @endforeach
             </nav>
@@ -122,12 +174,13 @@
                     @if (in_array($tab, ['all', 'about'], true))
                         <div class="surface p-5">
                             <div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-black">Intro</h2>@if($isOwn)<a href="{{ route('profile.edit') }}" class="text-sm font-bold text-primary-600 hover:underline dark:text-primary-300">Edit</a>@endif</div>
-                            @if ($p?->bio)<p class="mb-3 whitespace-pre-line text-center text-sm font-semibold leading-relaxed text-ink-700 dark:text-ink-200">{{ \Illuminate\Support\Str::limit($p->bio, 260) }}</p>@endif
+                            @if ($p?->bio)<p class="mb-4 whitespace-pre-line text-center text-sm leading-relaxed text-ink-700 dark:text-ink-200">{{ \Illuminate\Support\Str::limit($p->bio, 300) }}</p>@endif
                             <ul class="space-y-3.5">
                                 @if ($profileUser->department)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="users" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->department }}</span></li>@endif
                                 @if ($profileUser->designation)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="user" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->designation }}</span></li>@endif
                                 @if ($canSeeStudentId && ($profileUser->student_id || $profileUser->employee_id))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="shield" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->student_id ?: $profileUser->employee_id }}</span></li>@endif
-                                @if ($p?->room)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="map-pin" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $p->room }}</span></li>@endif
+                                @if ($detail('room'))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="map-pin" class="mt-0.5 h-5 w-5 text-ink-400" /><span>Room {{ $p->room }}@if ($isOwn && ($note = $visibilityNote[$p->room_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</span></li>@endif
+                                @if ($detail('pabx'))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="message" class="mt-0.5 h-5 w-5 text-ink-400" /><span>PABX {{ $p->pabx }}@if ($isOwn && ($note = $visibilityNote[$p->pabx_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</span></li>@endif
                                 @if ($canSeePhone && $p?->phone)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="message" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $p->phone }}</span></li>@endif
                                 @if ($canSeeEmail)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="mail" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->email }}</span></li>@endif
                                 <li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="calendar" class="mt-0.5 h-5 w-5 text-ink-400" /><span>Joined {{ $profileUser->created_at->format('M Y') }}</span></li>
@@ -135,15 +188,28 @@
                         </div>
                     @endif
 
-                    @if (in_array($tab, ['all', 'about'], true) && ($profileUser->role === 'faculty' || $p?->office_hours || $p?->research_interests || $p?->courses_taught || $p?->academic_resources))
+                    @php
+                        $officeHours = $detail('office_hours');
+                        $research = collect(explode(',', (string) $detail('research_interests')))->map(fn ($t) => trim($t))->filter()->take(12);
+                        $courses = $detail('courses_taught');
+                    @endphp
+                    @if (in_array($tab, ['all', 'about'], true) && ($officeHours || $research->isNotEmpty() || $courses || $p?->academic_resources || ($hasAcademicTab && $academic->isNotEmpty())))
                         <div class="surface p-5">
-                            <h2 class="mb-3 text-lg font-black">Faculty communication</h2>
+                            <h2 class="mb-3 text-lg font-black">Teaching &amp; research</h2>
                             <ul class="space-y-3.5">
-                                @if ($p?->office_hours)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="calendar" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Office hours</strong><br>{{ $p->office_hours }}</span></li>@endif
-                                @if ($p?->research_interests)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="lightbulb" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Research</strong><br>{{ $p->research_interests }}</span></li>@endif
-                                @if ($p?->courses_taught)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="file-text" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Courses</strong><br>{{ $p->courses_taught }}</span></li>@endif
-                                @if ($p?->academic_resources)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="file-text" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Resources</strong><br>{{ \Illuminate\Support\Str::limit($p->academic_resources, 300) }}</span></li>@endif
+                                @if ($officeHours)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="clock" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Office hours</strong>@if ($isOwn && ($note = $visibilityNote[$p->office_hours_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif<br>{{ $officeHours }}</span></li>@endif
+                                @if ($courses)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="file-text" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Courses taught</strong>@if ($isOwn && ($note = $visibilityNote[$p->courses_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif<br>{{ $courses }}</span></li>@endif
+                                @if ($p?->academic_resources)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="paperclip" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Resources</strong><br>{{ \Illuminate\Support\Str::limit($p->academic_resources, 300) }}</span></li>@endif
                             </ul>
+                            @if ($research->isNotEmpty())
+                                <p class="mb-2 mt-4 text-sm font-bold">Research interests @if ($isOwn && ($note = $visibilityNote[$p->research_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach ($research as $topic)<span class="chip">{{ $topic }}</span>@endforeach
+                                </div>
+                            @endif
+                            @if ($hasAcademicTab && $academic->isNotEmpty())
+                                <a href="{{ $tabUrl('academic') }}" class="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary-600 hover:underline dark:text-primary-300">Education, experience &amp; publications <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
+                            @endif
                         </div>
                     @endif
 
@@ -157,7 +223,7 @@
                             @else
                                 <div class="grid grid-cols-3 gap-2.5">
                                     @foreach ($friends as $friend)
-                                        <a href="{{ route('profile.show', $friend->id) }}" class="text-sm font-bold leading-tight text-ink-900 dark:text-white">
+                                        <a href="{{ route('profile.show', $friend->public_id) }}" class="text-sm font-bold leading-tight text-ink-900 dark:text-white">
                                             <span class="mb-1 grid aspect-square w-full place-items-center rounded-xl bg-cover bg-center bg-gradient-to-br from-ink-500 to-primary-500 text-lg font-black text-white" @if($friend->profile_photo_path) style="background-image:url({{ Storage::url($friend->profile_photo_path) }})" @endif>
                                                 @unless($friend->profile_photo_path){{ $friend->avatar_initials }}@endunless
                                             </span>
@@ -190,6 +256,10 @@
                         </div>
                     @endif
                 </aside>
+            @endif
+
+            @if ($tab === 'academic')
+                @include('profile._academic', ['sections' => $academic, 'current' => $academicSection, 'p' => $p, 'isOwn' => $isOwn, 'profileUser' => $profileUser])
             @endif
 
             @if (in_array($tab, ['all', 'posts', 'photos'], true))
