@@ -15,7 +15,7 @@ class ShuttleSchedule
     /**
      * Every configured route, each with its own upcoming departures.
      *
-     * @return array<int, array{key:string,name:string,provisional:bool,stops:array,departures:array}>
+     * @return array<int, array{key:string,name:string,kind:string,note:?string,provisional:bool,stops:array,departures:array}>
      */
     public static function allRoutes(int $limitPerRoute = 14): array
     {
@@ -25,6 +25,8 @@ class ShuttleSchedule
             $out[] = [
                 'key' => $key,
                 'name' => static::routeName($key),
+                'kind' => (string) config("shuttle.routes.{$key}.kind", 'shuttle'),
+                'note' => config("shuttle.routes.{$key}.note"),
                 'provisional' => (bool) config("shuttle.routes.{$key}.provisional", false),
                 'stops' => static::stops($key),
                 'departures' => static::upcoming($key, $limitPerRoute),
@@ -37,7 +39,7 @@ class ShuttleSchedule
     /**
      * Upcoming departures for one route across both directions, soonest first.
      *
-     * @return array<int, array{direction:string,label:string,from:string,to:string,depart:Carbon,window_until:?string,timestamp:int,is_today:bool}>
+     * @return array<int, array{direction:string,label:string,from:string,to:string,depart:Carbon,window_until:?string,until_timestamp:?int,continuous:bool,running:bool,tentative:bool,timestamp:int,is_today:bool}>
      */
     public static function upcoming(string $routeKey = self::DEFAULT_ROUTE, int $limit = 4): array
     {
@@ -62,8 +64,12 @@ class ShuttleSchedule
             foreach (['inbound', 'outbound'] as $direction) {
                 foreach ($route[$direction] ?? [] as $trip) {
                     $depart = $day->copy()->setTimeFromTimeString($trip['depart']);
+                    $until = isset($trip['window_until']) ? $day->copy()->setTimeFromTimeString($trip['window_until']) : null;
 
-                    if ($depart->lessThanOrEqualTo($now)) {
+                    // A departure window ("7:30 - 8:45 AM") stays listed until it closes.
+                    $running = $until && $depart->lessThanOrEqualTo($now) && $until->greaterThan($now);
+
+                    if ($depart->lessThanOrEqualTo($now) && ! $running) {
                         continue;
                     }
 
@@ -73,7 +79,11 @@ class ShuttleSchedule
                         'from' => $direction === 'inbound' ? $first : $last,
                         'to' => $direction === 'inbound' ? $last : $first,
                         'depart' => $depart,
-                        'window_until' => $trip['window_until'] ?? null,
+                        'window_until' => $until?->format('g:i A'),
+                        'until_timestamp' => $until?->getTimestamp(),
+                        'continuous' => ! empty($trip['continuous']),
+                        'running' => $running,
+                        'tentative' => ! empty($trip['tentative']),
                         'timestamp' => $depart->getTimestamp(),
                         'is_today' => $depart->isSameDay($now),
                     ];

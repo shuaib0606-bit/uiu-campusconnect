@@ -1,5 +1,6 @@
 import Alpine from 'alpinejs';
 import axios from 'axios';
+import groupChat from './chat';
 
 window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -150,6 +151,19 @@ document.addEventListener('alpine:init', () => {
         timer: null,
 
         init() {
+            // Remember the route this person rides; storage can be unavailable.
+            try {
+                const saved = localStorage.getItem('cc.shuttle.route');
+                if (saved && this.all.some((r) => r.key === saved)) this.routeKey = saved;
+            } catch (e) {}
+            this.$watch('routeKey', (key) => {
+                try { localStorage.setItem('cc.shuttle.route', key); } catch (e) {}
+                // The feed tile shows the next bus for this route too.
+                window.dispatchEvent(new CustomEvent('shuttle-route', { detail: key }));
+                // AC buses only have trips from campus.
+                if (this.route && this.route.kind === 'ac') this.filter = 'all';
+            });
+
             this.timer = setInterval(() => {
                 this.now = Math.floor(Date.now() / 1000);
             }, 1000);
@@ -164,17 +178,21 @@ document.addEventListener('alpine:init', () => {
         get list() {
             if (!this.route) return [];
             return this.route.departures.filter(
-                (d) => (this.filter === 'all' || d.dir === this.filter) && d.ts > this.now
+                (d) => (this.filter === 'all' || d.dir === this.filter) && (d.until || d.ts) > this.now
             );
         },
         get current() {
             return this.list[0] || null;
+        },
+        get running() {
+            return !!(this.current && this.current.ts <= this.now);
         },
         get rest() {
             return this.list.slice(1, 4);
         },
         get display() {
             if (!this.current) return '\u2014';
+            if (this.running) return 'Running now';
             const secs = this.current.ts - this.now;
             const h = Math.floor(secs / 3600);
             const m = Math.floor((secs % 3600) / 60);
@@ -264,7 +282,7 @@ document.addEventListener('alpine:init', () => {
         sending: false,
         attachment: null,
         init() {
-            const openId = Number(config.initialWith) || 0;
+            const openId = /^[a-z0-9]{6,16}$/.test(String(config.initialWith || '')) ? String(config.initialWith) : '';
 
             // ?with=<id> opens that conversation without waiting for the thread list.
             if (openId) {
@@ -465,6 +483,7 @@ document.addEventListener('alpine:init', () => {
 
                 if (html && this.$refs.list) {
                     this.$refs.list.insertAdjacentHTML('beforeend', html);
+                    window.ccHighlight(this.$refs.list);
                 }
 
                 this.cursor = data.nextCursor || null;
@@ -522,6 +541,34 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
+/**
+ * Colours any code blocks on the page, pulling the highlighter in as its own
+ * chunk the first time one is actually present. Most people never post or
+ * read code, and they should not download a parser for it.
+ */
+let highlighterLoading = null;
+
+window.ccHighlight = function ccHighlight(root = document) {
+    if (!root.querySelector('pre code[data-language]:not([data-highlighted])')) {
+        return;
+    }
+
+    highlighterLoading = highlighterLoading || import('./code-highlight.js');
+
+    highlighterLoading
+        .then(({ highlight }) => highlight(root))
+        // No colours is a perfectly readable outcome; the text is already there.
+        .catch(() => {});
+};
+
+document.addEventListener('DOMContentLoaded', () => window.ccHighlight());
+
+/**
+ * Document types that may be attached, matched on the file name. Kept in step
+ * with PostController::ALLOWED_EXTENSIONS, which is what actually enforces it.
+ */
+const ALLOWED_DOCUMENTS = /\.(pdf|docx?|pptx?|xlsx?|csv|txt|md|zip)$/i;
+
 /** Post composer. The form is submitted natively, so input.files is the upload. */
 document.addEventListener('alpine:init', () => {
     Alpine.data('ccComposer', (config = {}) => ({
@@ -539,6 +586,9 @@ document.addEventListener('alpine:init', () => {
         error: '',
         poll: false,
         options: ['', ''],
+        // Code mode: the body becomes the snippet, so it cannot also be a poll.
+        code: false,
+        codeLanguage: 'text',
         dragging: false,
         seq: 0,
 
@@ -596,6 +646,7 @@ document.addEventListener('alpine:init', () => {
             this.open = true;
             this.error = '';
             if (mode === 'poll') this.poll = true;
+            if (mode === 'code') this.toggleCode(true);
             document.body.style.overflow = 'hidden';
 
             this.$nextTick(() => {
@@ -651,10 +702,13 @@ document.addEventListener('alpine:init', () => {
 
                 const kind = file.type.startsWith('video/')
                     ? 'video'
-                    : (file.type.startsWith('image/') ? 'image' : null);
+                    : (file.type.startsWith('image/') ? 'image' : 'file');
 
-                if (!kind) {
-                    this.error = `"${file.name}" is not an image or a video.`;
+                // Documents are attached by extension rather than by MIME
+                // type: browsers report an empty type for plenty of ordinary
+                // files, and the server checks the extension again anyway.
+                if (kind === 'file' && !ALLOWED_DOCUMENTS.test(file.name)) {
+                    this.error = `"${file.name}" is not a file type you can attach.`;
                     continue;
                 }
 
@@ -666,7 +720,9 @@ document.addEventListener('alpine:init', () => {
                 accepted.push({
                     key: ++this.seq,
                     file,
-                    url: URL.createObjectURL(file),
+                    // A document has nothing to preview, so no object URL is
+                    // made for it - and nothing to revoke later either.
+                    url: kind === 'file' ? null : URL.createObjectURL(file),
                     kind,
                     name: file.name,
                     size: file.size,
@@ -766,6 +822,20 @@ document.addEventListener('alpine:init', () => {
             this.poll = !this.poll;
             this.error = '';
             if (!this.poll) this.options = ['', ''];
+            // A snippet with poll options attached is a mistake, not both.
+            if (this.poll) this.toggleCode(false);
+        },
+
+        toggleCode(on) {
+            this.code = typeof on === 'boolean' ? on : !this.code;
+            this.error = '';
+
+            if (this.code) {
+                this.poll = false;
+                this.options = ['', ''];
+            } else {
+                this.codeLanguage = 'text';
+            }
         },
 
         // Mentions
@@ -983,6 +1053,10 @@ document.addEventListener('alpine:init', () => {
             });
         },
     }));
+
+    // Group chat. Its Echo and Pusher imports are dynamic, so pages
+    // without a chat never download them.
+    Alpine.data('groupChat', groupChat);
 });
 
 window.Alpine = Alpine;
