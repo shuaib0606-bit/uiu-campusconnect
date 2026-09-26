@@ -7,6 +7,8 @@
     $payload = collect($routes)->map(fn ($r) => [
         'key' => $r['key'],
         'name' => $r['name'],
+        'kind' => $r['kind'],
+        'note' => $r['note'],
         'provisional' => $r['provisional'],
         'stops' => $r['stops'],
         'departures' => collect($r['departures'])->map(fn ($d) => [
@@ -18,6 +20,9 @@
             'time' => $d['depart']->format('g:i A'),
             'today' => $d['is_today'],
             'window' => $d['window_until'],
+            'until' => $d['until_timestamp'],
+            'continuous' => $d['continuous'],
+            'tentative' => $d['tentative'],
         ])->values(),
     ])->values();
 
@@ -35,12 +40,21 @@
     @else
         <label class="sr-only" for="cc-shuttle-route">Shuttle route</label>
         <select id="cc-shuttle-route" x-model="routeKey" class="field mb-2 !py-1.5 text-[13px]">
-            <template x-for="r in all" :key="r.key">
-                <option :value="r.key" x-text="r.name"></option>
-            </template>
+            <optgroup label="Shuttle">
+                @foreach ($payload->where('kind', '!=', 'ac') as $r)
+                    <option value="{{ $r['key'] }}">{{ $r['name'] }}</option>
+                @endforeach
+            </optgroup>
+            @if ($payload->contains('kind', 'ac'))
+                <optgroup label="AC bus (registered students)">
+                    @foreach ($payload->where('kind', 'ac') as $r)
+                        <option value="{{ $r['key'] }}">{{ $r['name'] }}</option>
+                    @endforeach
+                </optgroup>
+            @endif
         </select>
 
-        <div class="mb-3 flex gap-1">
+        <div class="mb-3 flex gap-1" x-show="route && route.kind !== 'ac'">
             <button type="button" class="filter-pill !px-2.5 !py-1 !text-xs" :class="filter === 'all' && 'is-active'" @click="filter = 'all'">All</button>
             <button type="button" class="filter-pill !px-2.5 !py-1 !text-xs" :class="filter === 'inbound' && 'is-active'" @click="filter = 'inbound'">To campus</button>
             <button type="button" class="filter-pill !px-2.5 !py-1 !text-xs" :class="filter === 'outbound' && 'is-active'" @click="filter = 'outbound'">From campus</button>
@@ -65,8 +79,10 @@
                         <span x-text="current.to"></span>
                     </p>
                     <p class="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
-                        <span x-text="current.time"></span>
-                        <span x-show="current.window" x-cloak x-text="'- ' + current.window + ' window'"></span>
+                        <span x-show="!running" x-text="current.time"></span>
+                        <span x-show="current.window && !running" x-cloak x-text="'- ' + current.window"></span>
+                        <span x-show="running" x-cloak x-text="(current.continuous ? 'Buses keep running until ' : 'Leaving any time until ') + current.window"></span>
+                        <span x-show="current.continuous && !running" x-cloak>(buses run continuously)</span>
                         <span x-show="!current.today" x-cloak> · tomorrow</span>
                     </p>
                 </div>
@@ -76,7 +92,7 @@
                         <template x-for="d in rest" :key="d.ts">
                             <div class="flex items-center justify-between gap-2 text-xs">
                                 <span class="truncate text-ink-600 dark:text-ink-300" x-text="d.label"></span>
-                                <span class="shrink-0 font-medium tabular-nums" x-text="d.time"></span>
+                                <span class="shrink-0 font-medium tabular-nums" x-text="d.time + (d.window ? ' - ' + d.window : '')"></span>
                             </div>
                         </template>
                     </div>
@@ -90,6 +106,7 @@
 
         <p class="mt-3 border-t border-ink-100 pt-2.5 text-[11px] leading-relaxed text-ink-400 dark:border-ink-800/70">
             <span x-text="route ? route.stops.join(' · ') : ''"></span><br>
+            <span x-show="route && route.note" x-cloak x-text="route ? route.note : ''"></span><span x-show="route && route.note" x-cloak><br></span>
             Published schedule, not live tracking.
         </p>
     @endif
