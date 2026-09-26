@@ -122,6 +122,17 @@
 }
 
 @layer components {
+    /* Academic profile text copied from the department websites. Plain
+       Markdown turned into HTML, so it only needs readable defaults. */
+    .academic-text > * + * { margin-top: 0.6rem; }
+    .academic-text h1, .academic-text h2, .academic-text h3, .academic-text h4 { @apply mt-4 text-sm font-black text-ink-900 dark:text-white; }
+    .academic-text ul { @apply list-disc space-y-1 pl-5; }
+    .academic-text ol { @apply list-decimal space-y-1 pl-5; }
+    .academic-text a { @apply font-semibold text-primary-600 underline decoration-primary-300 underline-offset-2 break-words dark:text-primary-300; }
+    .academic-text strong { @apply font-bold text-ink-900 dark:text-white; }
+    .academic-text table { @apply block w-full overflow-x-auto text-xs; }
+    .academic-text td, .academic-text th { @apply border-b px-2 py-1.5 align-top; border-color: var(--hairline); }
+
     .surface {
         @apply rounded-2xl shadow-soft;
         background: var(--surface-card);
@@ -470,6 +481,37 @@
         @apply p-5;
     }
 
+    /* Feed rail tiles: one per module, opening a side panel. */
+    .rail-tile {
+        @apply flex min-w-0 flex-col items-start rounded-2xl p-4 text-left shadow-soft transition;
+        background: var(--surface-card);
+        border: 1px solid var(--hairline);
+    }
+
+    .rail-tile:hover {
+        @apply -translate-y-0.5 border-primary-300 dark:border-primary-700;
+    }
+
+    .rail-tile:focus-visible {
+        @apply outline-none ring-2 ring-primary-500;
+    }
+
+    .rail-tile-icon {
+        @apply mb-3 grid h-12 w-12 place-items-center rounded-2xl;
+    }
+
+    .rail-tile-title {
+        @apply text-[15px] font-semibold text-ink-900 dark:text-white;
+    }
+
+    .rail-tile-fact {
+        @apply mt-0.5 text-[13px] font-medium text-ink-600 dark:text-ink-300;
+    }
+
+    .rail-tile-sub {
+        @apply mt-0.5 w-full truncate text-[11px] text-ink-400;
+    }
+
     .rail-card h3 {
         @apply text-sm font-semibold text-ink-900 dark:text-white;
     }
@@ -800,4 +842,105 @@
         transition-delay: 0ms !important;
         scroll-behavior: auto !important;
     }
+}
+
+/* ---------------------------------------------------------------------------
+   Code posts.
+
+   A hand-picked token palette rather than one of highlight.js's stock themes:
+   the stock ones are tuned for their own backgrounds and fight the terracotta
+   the rest of the site is built on. Hues are kept apart from the brand colour
+   so a keyword never reads as a link, and both modes were checked for
+   contrast against the surface they sit on.
+   --------------------------------------------------------------------------- */
+.cc-code {
+    /* Light mode. */
+    --code-comment: #7c7268;
+    --code-keyword: #9a3d7a;
+    --code-string: #3f7a44;
+    --code-number: #9a5b24;
+    --code-function: #1f5f96;
+    --code-type: #8a5a12;
+    --code-variable: #b5502f;
+    --code-punct: #6b6560;
+}
+
+.dark .cc-code {
+    --code-comment: #6f6a78;
+    --code-keyword: #e08bc4;
+    --code-string: #8fd694;
+    --code-number: #f0b366;
+    --code-function: #7fc0f0;
+    --code-type: #e6c77a;
+    --code-variable: #f0a288;
+    --code-punct: #9a9490;
+}
+
+.cc-code .hljs-comment,
+.cc-code .hljs-quote {
+    color: var(--code-comment);
+    font-style: italic;
+}
+
+.cc-code .hljs-keyword,
+.cc-code .hljs-selector-tag,
+.cc-code .hljs-literal,
+.cc-code .hljs-section,
+.cc-code .hljs-doctag,
+.cc-code .hljs-meta .hljs-keyword {
+    color: var(--code-keyword);
+    font-weight: 600;
+}
+
+.cc-code .hljs-string,
+.cc-code .hljs-regexp,
+.cc-code .hljs-addition,
+.cc-code .hljs-attribute,
+.cc-code .hljs-meta .hljs-string {
+    color: var(--code-string);
+}
+
+.cc-code .hljs-number,
+.cc-code .hljs-symbol,
+.cc-code .hljs-bullet,
+.cc-code .hljs-link {
+    color: var(--code-number);
+}
+
+.cc-code .hljs-title,
+.cc-code .hljs-title.function_,
+.cc-code .hljs-name,
+.cc-code .hljs-selector-id,
+.cc-code .hljs-selector-class {
+    color: var(--code-function);
+}
+
+.cc-code .hljs-type,
+.cc-code .hljs-class .hljs-title,
+.cc-code .hljs-title.class_,
+.cc-code .hljs-built_in,
+.cc-code .hljs-builtin-name {
+    color: var(--code-type);
+}
+
+.cc-code .hljs-variable,
+.cc-code .hljs-template-variable,
+.cc-code .hljs-attr,
+.cc-code .hljs-params,
+.cc-code .hljs-property {
+    color: var(--code-variable);
+}
+
+.cc-code .hljs-punctuation,
+.cc-code .hljs-operator,
+.cc-code .hljs-meta,
+.cc-code .hljs-tag {
+    color: var(--code-punct);
+}
+
+.cc-code .hljs-emphasis { font-style: italic; }
+.cc-code .hljs-strong { font-weight: 700; }
+
+.cc-code .hljs-deletion {
+    color: #b3402f;
 }
