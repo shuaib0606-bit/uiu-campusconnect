@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'UIU CampusConnect' }}</title>
-    <link rel="icon" href="data:image/svg+xml,{{ rawurlencode('<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><rect width=%2224%22 height=%2224%22 rx=%226%22 fill=%22%23c15f3c%22/><text x=%2212%22 y=%2216.5%22 font-family=%22Arial%22 font-size=%2212%22 fill=%22white%22 text-anchor=%22middle%22 font-weight=%22700%22>U</text></svg>') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('img/logo-64.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/logo-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/apple-touch-icon.png') }}">
     <script>
         (function () {
             var m = document.cookie.match(/(?:^|; )cc_theme=([^;]+)/);
@@ -21,7 +23,7 @@
             @auth
             <a href="{{ route('profile.show', auth()->user()) }}" class="flex flex-col items-center text-center gap-3 px-2 mb-8">
                 <span class="relative">
-                    <span class="grid h-20 w-20 place-items-center rounded-full bg-primary-100 text-primary-700 text-2xl font-semibold dark:bg-primary-900/40 dark:text-primary-200">{{ auth()->user()->avatar_initials }}</span>
+                    <x-user-avatar :user="auth()->user()" size="h-20 w-20" text="text-2xl" />
                     <span class="absolute -left-1 -top-1 grid h-6 w-6 place-items-center rounded-lg bg-primary-500 text-white ring-[3px] ring-[var(--surface-page)]">
                         <x-ui-icon name="home" class="h-3.5 w-3.5" />
                     </span>
@@ -33,7 +35,7 @@
             </a>
             @else
             <a href="{{ route('feed.index') }}" class="flex items-center gap-2.5 px-2 mb-8">
-                <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary-500 text-white font-bold">U</span>
+                <img src="{{ asset('img/logo.png') }}" alt="" width="36" height="36" class="h-9 w-9 shrink-0 rounded-xl object-cover">
                 <span class="text-[15px] font-semibold tracking-tight">CampusConnect</span>
             </a>
             @endauth
@@ -41,6 +43,11 @@
             <nav class="flex flex-col gap-1">
                 @php $r = request()->route()?->getName(); @endphp
                 <a href="{{ route('feed.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'feed') ? 'is-active' : '' }}"><x-ui-icon name="home" class="h-5 w-5" />Feed</a>
+                @auth
+                    {{-- The React layout carries this link too. Both sidebars
+                         have to list it, or it appears on half the site. --}}
+                    <a href="{{ route('assistant.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'assistant') ? 'is-active' : '' }}"><x-ui-icon name="lightbulb" class="h-5 w-5" />Assistant</a>
+                @endauth
                 <a href="{{ route('network.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'network') ? 'is-active' : '' }}"><x-ui-icon name="users" class="h-5 w-5" />Network</a>
                 @auth
                     <a href="{{ route('connect-requests.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'connect-requests') ? 'is-active' : '' }}">
@@ -54,10 +61,20 @@
                 </a>
                 <a href="{{ route('clubs.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'clubs') ? 'is-active' : '' }}"><x-ui-icon name="award" class="h-5 w-5" />Clubs</a>
                 <a href="{{ route('events.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'events') ? 'is-active' : '' }}"><x-ui-icon name="calendar" class="h-5 w-5" />Events</a>
-                <a href="{{ route('groups.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'groups') ? 'is-active' : '' }}"><x-ui-icon name="users" class="h-5 w-5" />Groups</a>
+                <a href="{{ route('calendar.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'calendar') ? 'is-active' : '' }}"><x-ui-icon name="calendar" class="h-5 w-5" />Academic calendar</a>
+                <a href="{{ route('groups.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'groups') ? 'is-active' : '' }}">
+                    <x-ui-icon name="users" class="h-5 w-5" />Groups
+                    {{-- Unopened course and club announcements. --}}
+                    @if(($unreadGroupNotices ?? 0) > 0)<span class="ml-auto rounded-full bg-primary-500 text-white text-[11px] font-semibold px-2 py-0.5">{{ $unreadGroupNotices }}</span>@endif
+                </a>
                 <a href="{{ route('notices.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'notices') ? 'is-active' : '' }}"><x-ui-icon name="flag" class="h-5 w-5" />Notices</a>
                 <a href="{{ route('marketplace.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'marketplace') ? 'is-active' : '' }}"><x-ui-icon name="shopping-bag" class="h-5 w-5" />Marketplace</a>
                 <a href="{{ route('lost-found.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'lost-found') ? 'is-active' : '' }}"><x-ui-icon name="inbox" class="h-5 w-5" />Lost & Found</a>
+
+                {{-- The university's own systems, each explained, in one dialog. --}}
+                @auth
+                    <x-uiu-sites />
+                @endauth
 
                 @auth
                     @if(auth()->user()->canIssueSectionAnnouncements())
@@ -136,6 +153,9 @@
 
             <nav class="lg:hidden sticky bottom-0 z-30 flex items-center justify-around border-t border-ink-100 dark:border-ink-800/70 bg-[var(--surface-page)]/95 backdrop-blur-xl px-2 py-2">
                 <a href="{{ route('feed.index') }}" class="btn-icon"><x-ui-icon name="home" class="h-5 w-5" /></a>
+                @auth
+                    <a href="{{ route('assistant.index') }}" class="btn-icon"><x-ui-icon name="lightbulb" class="h-5 w-5" /></a>
+                @endauth
                 <a href="{{ route('network.index') }}" class="btn-icon"><x-ui-icon name="users" class="h-5 w-5" /></a>
                 <a href="{{ route('messages.index') }}" class="btn-icon"><x-ui-icon name="message" class="h-5 w-5" /></a>
                 <a href="{{ route('events.index') }}" class="btn-icon"><x-ui-icon name="calendar" class="h-5 w-5" /></a>
@@ -161,5 +181,7 @@
     </div>
 
     <x-messenger-widget />
+
+    @stack('scripts')
 </body>
 </html>
