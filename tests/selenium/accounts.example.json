@@ -1,0 +1,6 @@
+[
+  { "label": "Student (Arpon)",    "role": "student",   "email": "arpon@example.com",     "password": "REPLACE_ME" },
+  { "label": "Faculty (Dr Suman)", "role": "faculty",   "email": "suman@example.com",     "password": "REPLACE_ME" },
+  { "label": "Registrar",          "role": "registrar", "email": "registrar@example.com", "password": "REPLACE_ME" },
+  { "label": "Admin",              "role": "admin",     "email": "admin@example.com",     "password": "REPLACE_ME" }
+]
