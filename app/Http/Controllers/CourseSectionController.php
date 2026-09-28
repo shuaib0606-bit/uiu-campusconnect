@@ -29,6 +29,15 @@ class CourseSectionController extends Controller
     {
         $user = $request->user();
 
+        // Faculty, officials and admins can view the section list; students
+        // cannot. The menu hides the link, but this check is the real lock -
+        // without it anyone could open the page by typing the address.
+        abort_unless(
+            $user->isFaculty() || $user->isOfficial() || $user->isAdmin(),
+            403,
+            'Course sections are for faculty and university staff.'
+        );
+
         $trimesters = Trimester::orderByDesc('ends_on')->get();
         $current = $this->chosenTrimester($request, $trimesters);
 
