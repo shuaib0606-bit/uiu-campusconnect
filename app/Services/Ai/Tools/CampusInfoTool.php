@@ -85,8 +85,8 @@ class CampusInfoTool extends Tool
     }
 
     /**
-     * The trimester's sections - the /administration page, which every
-     * signed-in user can already open. Teacher names, times and rooms; no
+     * The trimester's sections - the same data as the /administration page
+     * (which only faculty, officials and admins can open). Teacher names, times and rooms; no
      * student lists.
      */
     private function sections(string $query): array
