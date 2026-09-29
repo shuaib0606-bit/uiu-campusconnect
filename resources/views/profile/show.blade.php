@@ -78,7 +78,7 @@
                     @if ($isOwn)
                         <a href="{{ route('profile.edit') }}" class="btn-primary"><x-ui-icon name="edit" class="h-4 w-4" />Edit profile</a>
                         <a href="{{ route('feed.index') }}" class="btn-secondary">Create post</a>
-                        <a href="{{ route('settings.password') }}" class="btn-secondary"><x-ui-icon name="shield" class="h-4 w-4" />Account settings</a>
+                        <a href="{{ route('settings.password') }}" class="btn-secondary"><x-ui-icon name="settings" class="h-4 w-4" />Account settings</a>
                     @elseif (auth()->check())
                         @if ($friendship && $friendship->status === 'accepted')
                             <span class="btn-secondary cursor-default"><x-ui-icon name="check-circle" class="h-4 w-4" />Friends</span>
@@ -109,7 +109,7 @@
                                     <form method="POST" action="{{ route('network.unblock', $profileUser) }}" x-show="!reporting">
                                         @csrf
                                         <button type="submit" class="flex w-full items-center gap-2 px-4 py-2 hover:bg-ink-900/5 dark:hover:bg-white/5">
-                                            <x-ui-icon name="check-circle" class="h-4 w-4" />Unblock
+                                            <x-ui-icon name="ban" class="h-4 w-4" />Unblock
                                         </button>
                                     </form>
                                 @else
@@ -177,12 +177,12 @@
                             <div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-black">Intro</h2>@if($isOwn)<a href="{{ route('profile.edit') }}" class="text-sm font-bold text-primary-600 hover:underline dark:text-primary-300">Edit</a>@endif</div>
                             @if ($p?->bio)<p class="mb-4 whitespace-pre-line text-center text-sm leading-relaxed text-ink-700 dark:text-ink-200">{{ \Illuminate\Support\Str::limit($p->bio, 300) }}</p>@endif
                             <ul class="space-y-3.5">
-                                @if ($profileUser->department)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="users" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->department }}</span></li>@endif
+                                @if ($profileUser->department)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="building" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->department }}</span></li>@endif
                                 @if ($profileUser->designation)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="user" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->designation }}</span></li>@endif
-                                @if ($canSeeStudentId && ($profileUser->student_id || $profileUser->employee_id))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="shield" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->student_id ?: $profileUser->employee_id }}</span></li>@endif
+                                @if ($canSeeStudentId && ($profileUser->student_id || $profileUser->employee_id))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="hashtag" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->student_id ?: $profileUser->employee_id }}</span></li>@endif
                                 @if ($detail('room'))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="map-pin" class="mt-0.5 h-5 w-5 text-ink-400" /><span>Room {{ $p->room }}@if ($isOwn && ($note = $visibilityNote[$p->room_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</span></li>@endif
-                                @if ($detail('pabx'))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="message" class="mt-0.5 h-5 w-5 text-ink-400" /><span>PABX {{ $p->pabx }}@if ($isOwn && ($note = $visibilityNote[$p->pabx_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</span></li>@endif
-                                @if ($canSeePhone && $p?->phone)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="message" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $p->phone }}</span></li>@endif
+                                @if ($detail('pabx'))<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="phone" class="mt-0.5 h-5 w-5 text-ink-400" /><span>PABX {{ $p->pabx }}@if ($isOwn && ($note = $visibilityNote[$p->pabx_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</span></li>@endif
+                                @if ($canSeePhone && $p?->phone)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="phone" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $p->phone }}</span></li>@endif
                                 @if ($canSeeEmail)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="mail" class="mt-0.5 h-5 w-5 text-ink-400" /><span>{{ $profileUser->email }}</span></li>@endif
                                 <li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm font-semibold leading-tight"><x-ui-icon name="calendar" class="mt-0.5 h-5 w-5 text-ink-400" /><span>Joined {{ $profileUser->created_at->format('M Y') }}</span></li>
                             </ul>
@@ -199,8 +199,8 @@
                             <h2 class="mb-3 text-lg font-black">Teaching &amp; research</h2>
                             <ul class="space-y-3.5">
                                 @if ($officeHours)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="clock" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Office hours</strong>@if ($isOwn && ($note = $visibilityNote[$p->office_hours_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif<br>{{ $officeHours }}</span></li>@endif
-                                @if ($courses)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="file-text" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Courses taught</strong>@if ($isOwn && ($note = $visibilityNote[$p->courses_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif<br>{{ $courses }}</span></li>@endif
-                                @if ($p?->academic_resources)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="paperclip" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Resources</strong><br>{{ \Illuminate\Support\Str::limit($p->academic_resources, 300) }}</span></li>@endif
+                                @if ($courses)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="class" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Courses taught</strong>@if ($isOwn && ($note = $visibilityNote[$p->courses_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif<br>{{ $courses }}</span></li>@endif
+                                @if ($p?->academic_resources)<li class="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-tight"><x-ui-icon name="book" class="mt-0.5 h-5 w-5 text-ink-400" /><span><strong class="font-bold">Resources</strong><br>{{ \Illuminate\Support\Str::limit($p->academic_resources, 300) }}</span></li>@endif
                             </ul>
                             @if ($research->isNotEmpty())
                                 <p class="mb-2 mt-4 text-sm font-bold">Research interests @if ($isOwn && ($note = $visibilityNote[$p->research_visibility] ?? null))<span class="ml-1.5 text-xs font-medium text-ink-400">&middot; {{ $note }}</span>@endif</p>
@@ -273,8 +273,8 @@
                             </a>
                             <div class="mt-3 grid grid-cols-3 gap-2 border-t border-ink-100 pt-3 dark:border-ink-800/70">
                                 <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="image" class="h-5 w-5" />Photo/video</a>
-                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="file-text" class="h-5 w-5" />Document</a>
-                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="award" class="h-5 w-5" />Life update</a>
+                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="paperclip" class="h-5 w-5" />Document</a>
+                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="gift" class="h-5 w-5" />Life update</a>
                             </div>
                         </div>
                     @endif

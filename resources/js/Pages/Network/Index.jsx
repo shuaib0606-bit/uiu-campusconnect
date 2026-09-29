@@ -80,7 +80,7 @@ function PersonCard({ person }) {
 
             {person.special_role && (
                 <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary-500/10 px-2.5 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300">
-                    <Icon name="award" className="h-3.5 w-3.5" />
+                    <Icon name="pennant" className="h-3.5 w-3.5" />
                     {person.special_role}
                 </div>
             )}

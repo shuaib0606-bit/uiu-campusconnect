@@ -583,7 +583,7 @@ export default function ConnectRequestsIndex({ applications, groupInvites = [], 
                         <p className="section-sub px-1">No connection applications.</p>
                     ) : applications.length === 0 ? (
                         <div className="empty-state">
-                            <span className="empty-icon"><Icon name="handshake" className="h-6 w-6" /></span>
+                            <span className="empty-icon"><Icon name="inbox-in" className="h-6 w-6" /></span>
                             <h3>No applications found</h3>
                             <p>
                                 {isAdmin
