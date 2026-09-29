@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Club;
 use App\Models\ClubPanelChange;
 use App\Models\ClubRoleRequest;
+use App\Models\CommunityGroup;
 use App\Models\ConnectionApplication;
+use App\Models\GroupInvite;
 use App\Models\Friendship;
 use App\Models\User;
 use App\Services\SocialRules;
@@ -77,6 +79,7 @@ class ConnectionRequestController extends Controller
 
         return Inertia::render('ConnectRequests/Index', [
             'applications' => $applications->map(fn (ConnectionApplication $app) => $this->card($app, $user))->values(),
+            'groupInvites' => $this->groupInvites($user),
             'clubRoleRequests' => $this->clubRoleRequests($user),
             'clubPanelChanges' => $this->clubPanelChanges($user),
             'tab' => $tab,
@@ -98,6 +101,61 @@ class ConnectionRequestController extends Controller
                 'message_url' => route('messages.show', $target),
             ],
         ]);
+    }
+
+    /**
+     * Invitations to join a group, waiting ones first. The invitation
+     * notification links here, so each card carries everything needed to
+     * decide: what the group is, who runs it, who invited you, and how
+     * posting works inside it.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function groupInvites(User $user)
+    {
+        return GroupInvite::with(['group.owner', 'inviter'])
+            ->where('user_id', $user->id)
+            ->whereIn('status', [GroupInvite::PENDING, GroupInvite::ACCEPTED, GroupInvite::DECLINED])
+            ->whereHas('group')
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->latest('updated_at')
+            ->limit(30)
+            ->get()
+            ->map(function (GroupInvite $invite) {
+                $group = $invite->group;
+                $inviter = $invite->inviter;
+
+                return [
+                    'id' => $invite->id,
+                    'status' => $invite->status,
+                    'status_label' => $invite->statusLabel(),
+                    'pending' => $invite->isPending(),
+                    'invited_at' => $invite->updated_at->format('M j, Y g:i A'),
+                    'invited_ago' => $invite->updated_at->diffForHumans(),
+                    'answered_at' => $invite->responded_at?->format('M j, Y'),
+                    'group' => [
+                        'name' => $group->name,
+                        'url' => route('groups.show', $group),
+                        'type' => ucfirst((string) $group->group_type).' group',
+                        'description' => \Illuminate\Support\Str::limit((string) $group->description, 400),
+                        'department' => $group->department,
+                        'privacy' => $group->isPrivate() ? 'Members only' : 'Public',
+                        'members' => $group->members()->count(),
+                        'posting' => CommunityGroup::POSTING_MODES[$group->postingMode()]['public'],
+                        'owner' => $group->owner?->full_name,
+                    ],
+                    'inviter' => $inviter ? [
+                        'name' => $inviter->full_name,
+                        'subtitle' => implode(' · ', array_filter([$inviter->roleLabel(), $inviter->department])),
+                        'avatar_url' => $inviter->avatar_url,
+                        'initials' => $inviter->avatar_initials,
+                        'url' => route('profile.show', $inviter),
+                    ] : null,
+                    'accept_url' => route('group-invites.accept', $invite),
+                    'decline_url' => route('group-invites.decline', $invite),
+                ];
+            })
+            ->values();
     }
 
     /**

@@ -22,7 +22,7 @@
 @endphp
 <x-app-layout :title="$profileUser->full_name.' - UIU CampusConnect'">
     <div class="mx-auto max-w-[1180px]">
-        <div class="mb-6 overflow-hidden rounded-b-2xl border border-ink-100 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.08)] dark:border-ink-800/70 dark:bg-[#141210] dark:shadow-[0_16px_36px_rgba(0,0,0,0.28)]">
+        <div class="relative z-10 mb-6 rounded-b-2xl border border-ink-100 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.08)] dark:border-ink-800/70 dark:bg-[#141210] dark:shadow-[0_16px_36px_rgba(0,0,0,0.28)]">
             {{-- Cover --}}
             <div class="relative h-[190px] bg-cover bg-center bg-gradient-to-br from-primary-500 to-primary-800 sm:h-[240px] lg:h-[300px]" @if($p?->cover_photo_path) style="background-image:url({{ Storage::url($p->cover_photo_path) }})" @endif>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/5 to-black/35"></div>

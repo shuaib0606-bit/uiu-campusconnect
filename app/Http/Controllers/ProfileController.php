@@ -187,10 +187,7 @@ class ProfileController extends Controller
 
     public function report(Request $request, User $user)
     {
-        $data = $request->validate([
-            'reason' => ['required', 'string', 'max:255'],
-            'details' => ['nullable', 'string', 'max:700'],
-        ]);
+        $data = \App\Support\ReportReasons::validate($request);
 
         ProfileReport::updateOrCreate([
             'reported_user_id' => $user->id,

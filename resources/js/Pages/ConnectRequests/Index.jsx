@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 import Icon from '../../Components/Icon';
@@ -371,8 +371,114 @@ function csrf() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 }
 
-export default function ConnectRequestsIndex({ applications, clubRoleRequests = [], clubPanelChanges = [], tab, tabs, role, target, missingTarget }) {
+const INVITE_CHIP = {
+    pending: '!bg-primary-500/10 !text-primary-700 dark:!text-primary-300',
+    accepted: '!bg-emerald-500/10 !text-emerald-700 dark:!text-emerald-300',
+    declined: '',
+};
+
+/**
+ * An invitation to join a group. Everything needed to decide is on the card:
+ * what the group is, who invited you, who runs it and how posting works.
+ * Nothing happens until you accept - you are not a member before that.
+ */
+function GroupInviteCard({ invite, highlighted }) {
+    const { group, inviter } = invite;
+    const details = [
+        ['Members', group.members],
+        ['Owner', group.owner],
+        ['Who can post', group.posting],
+        ['Visibility', group.privacy],
+        ['Department', group.department],
+    ].filter(([, value]) => value !== null && value !== undefined && value !== '');
+
+    return (
+        <article
+            id={`invite-${invite.id}`}
+            className={`surface scroll-mt-24 p-5 transition ${highlighted ? 'ring-2 ring-primary-500' : ''}`}
+        >
+            <div className="flex flex-wrap items-center gap-1.5">
+                <span className={`chip ${INVITE_CHIP[invite.status] ?? ''}`}>
+                    {invite.pending ? 'Group invitation' : invite.status_label}
+                </span>
+                <span className="chip">{group.type}</span>
+                {group.privacy === 'Members only' && (
+                    <span className="chip !bg-amber-500/10 !text-amber-700 dark:!text-amber-300">
+                        <Icon name="lock" className="h-3 w-3" />Private
+                    </span>
+                )}
+            </div>
+
+            <h3 className="mt-2 text-[17px] font-semibold tracking-tight">
+                <a href={group.url} className="hover:underline">{group.name}</a>
+            </h3>
+
+            {inviter && (
+                <div className="mt-2 flex items-center gap-2.5">
+                    <UserAvatar url={inviter.avatar_url} initials={inviter.initials} size="h-8 w-8" text="text-[11px]" />
+                    <p className="min-w-0 text-sm">
+                        <a href={inviter.url} className="font-semibold hover:underline">{inviter.name}</a>
+                        <span className="text-ink-500 dark:text-ink-400"> invited you · {invite.invited_ago}</span>
+                        {inviter.subtitle && <span className="block truncate text-xs text-ink-400">{inviter.subtitle}</span>}
+                    </p>
+                </div>
+            )}
+
+            {group.description && (
+                <p className="mt-3 whitespace-pre-line text-sm text-ink-600 dark:text-ink-300">{group.description}</p>
+            )}
+
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-ink-900/[0.03] p-3 text-sm dark:bg-white/[0.04] sm:grid-cols-3">
+                {details.map(([label, value]) => (
+                    <div key={label} className="min-w-0">
+                        <dt className="text-xs text-ink-500 dark:text-ink-400">{label}</dt>
+                        <dd className="truncate font-medium">{value}</dd>
+                    </div>
+                ))}
+            </dl>
+
+            {invite.pending ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <form method="POST" action={invite.accept_url}>
+                        <input type="hidden" name="_token" value={csrf()} />
+                        <button type="submit" className="btn-primary">
+                            <Icon name="check" className="h-4 w-4" />Accept and join
+                        </button>
+                    </form>
+                    <form method="POST" action={invite.decline_url}>
+                        <input type="hidden" name="_token" value={csrf()} />
+                        <button type="submit" className="btn-secondary">Decline</button>
+                    </form>
+                    <span className="section-sub">Sent {invite.invited_at}</span>
+                </div>
+            ) : (
+                <p className="section-sub mt-3">
+                    {invite.status_label}{invite.answered_at ? ` on ${invite.answered_at}` : ''}.
+                    {invite.status === 'accepted' && (
+                        <> <a href={group.url} className="font-semibold text-primary-600 hover:underline dark:text-primary-300">Open the group</a></>
+                    )}
+                </p>
+            )}
+        </article>
+    );
+}
+
+export default function ConnectRequestsIndex({ applications, groupInvites = [], clubRoleRequests = [], clubPanelChanges = [], tab, tabs, role, target, missingTarget }) {
     const isAdmin = role === 'admin';
+
+    // A notification links to /connect-requests#invite-12: bring that card
+    // into view and mark it.
+    const [highlighted, setHighlighted] = useState(null);
+    useEffect(() => {
+        const match = window.location.hash.match(/^#invite-(\d+)$/);
+        if (!match) return;
+        const id = Number(match[1]);
+        setHighlighted(id);
+        requestAnimationFrame(() => document.getElementById(`invite-${id}`)?.scrollIntoView({ block: 'center' }));
+    }, []);
+
+    const waitingInvites = groupInvites.filter((invite) => invite.pending);
+    const answeredInvites = groupInvites.filter((invite) => !invite.pending);
 
     const heading = isAdmin ? `${capitalise(tab)} applications` : 'records';
     const ownLabel = role === 'student' ? 'My Applications' : 'Approved Students';
@@ -428,6 +534,19 @@ export default function ConnectRequestsIndex({ applications, clubRoleRequests = 
                     </div>
                 )}
 
+                {waitingInvites.length > 0 && (
+                    <div className="mb-6">
+                        <h2 className="mb-2 text-sm font-semibold text-ink-500 dark:text-ink-400">
+                            Group invitations ({waitingInvites.length})
+                        </h2>
+                        <div className="space-y-4">
+                            {waitingInvites.map((invite) => (
+                                <GroupInviteCard key={invite.id} invite={invite} highlighted={highlighted === invite.id} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {clubPanelChanges.length > 0 && (
                     <div className="mb-6">
                         <h2 className="mb-2 text-sm font-semibold text-ink-500 dark:text-ink-400">Panel handovers</h2>
@@ -446,8 +565,23 @@ export default function ConnectRequestsIndex({ applications, clubRoleRequests = 
                     </div>
                 )}
 
+                {answeredInvites.length > 0 && (
+                    <details className="mb-6" open={answeredInvites.some((invite) => invite.id === highlighted)}>
+                        <summary className="mb-2 cursor-pointer text-sm font-semibold text-ink-500 dark:text-ink-400">
+                            Past group invitations ({answeredInvites.length})
+                        </summary>
+                        <div className="space-y-4">
+                            {answeredInvites.map((invite) => (
+                                <GroupInviteCard key={invite.id} invite={invite} highlighted={highlighted === invite.id} />
+                            ))}
+                        </div>
+                    </details>
+                )}
+
                 <div className="space-y-4">
-                    {applications.length === 0 ? (
+                    {applications.length === 0 && (groupInvites.length > 0 || clubRoleRequests.length > 0 || clubPanelChanges.length > 0) ? (
+                        <p className="section-sub px-1">No connection applications.</p>
+                    ) : applications.length === 0 ? (
                         <div className="empty-state">
                             <span className="empty-icon"><Icon name="users" className="h-6 w-6" /></span>
                             <h3>No applications found</h3>
