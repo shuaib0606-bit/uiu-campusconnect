@@ -59,7 +59,7 @@
         </div>
     @empty
         <div class="empty-state !py-8">
-            <span class="empty-icon"><x-ui-icon name="paperclip" class="h-5 w-5" /></span>
+            <span class="empty-icon"><x-ui-icon name="book" class="h-5 w-5" /></span>
             <h3>Nothing here yet</h3>
             <p>Slides and readings shared with this group will appear here.</p>
         </div>

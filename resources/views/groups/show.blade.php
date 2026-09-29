@@ -68,7 +68,7 @@
                         {{-- The three-dot menu: everything that is not the wall. --}}
                         <button type="button" @click="panel = panel === 'materials' ? null : 'materials'"
                             class="btn-secondary !px-3 !py-1.5 text-xs" :class="panel === 'materials' && 'ring-2 ring-primary-500'">
-                            <x-ui-icon name="paperclip" class="h-3.5 w-3.5" />Materials
+                            <x-ui-icon name="book" class="h-3.5 w-3.5" />Materials
                             @if ($materials->isNotEmpty())<span class="opacity-70">{{ $materials->count() }}</span>@endif
                         </button>
                         {{-- Chat belongs to the teacher's communication
@@ -79,30 +79,30 @@
                         @if ($chatVisible)
                             <button type="button" @click="panel = panel === 'chat' ? null : 'chat'"
                                 class="btn-secondary !px-3 !py-1.5 text-xs" :class="panel === 'chat' && 'ring-2 ring-primary-500'">
-                                <x-ui-icon name="message" class="h-3.5 w-3.5" />Chat
+                                <x-ui-icon name="chat" class="h-3.5 w-3.5" />Chat
                             </button>
                         @endif
                         <button type="button" @click="panel = panel === 'assignments' ? null : 'assignments'"
                             class="btn-secondary !px-3 !py-1.5 text-xs" :class="panel === 'assignments' && 'ring-2 ring-primary-500'">
-                            <x-ui-icon name="file-text" class="h-3.5 w-3.5" />Assignments
+                            <x-ui-icon name="clipboard" class="h-3.5 w-3.5" />Assignments
                             @if ($assignments->isNotEmpty())<span class="opacity-70">{{ $assignments->count() }}</span>@endif
                         </button>
                         <button type="button" @click="panel = panel === 'notices' ? null : 'notices'"
                             class="btn-secondary !px-3 !py-1.5 text-xs" :class="panel === 'notices' && 'ring-2 ring-primary-500'">
-                            <x-ui-icon name="flag" class="h-3.5 w-3.5" />Notices
+                            <x-ui-icon name="megaphone" class="h-3.5 w-3.5" />Notices
                             @if ($notices->isNotEmpty())<span class="opacity-70">{{ $notices->count() }}</span>@endif
                         </button>
                     @endif
 
                     @if ($canInvite)
                         <button type="button" data-invite-open @click="$dispatch('open-invite')" class="btn-primary !px-3 !py-1.5 text-xs">
-                            <x-ui-icon name="user-plus" class="h-3.5 w-3.5" />Invite people
+                            <x-ui-icon name="envelope-open" class="h-3.5 w-3.5" />Invite people
                         </button>
                     @endif
 
                     @if ($canManage)
                         <button type="button" @click="panel = panel === 'manage' ? null : 'manage'" class="btn-secondary !px-3 !py-1.5 text-xs">
-                            <x-ui-icon name="settings" class="h-3.5 w-3.5" />Manage
+                            <x-ui-icon name="sliders" class="h-3.5 w-3.5" />Manage
                         </button>
                     @endif
 
@@ -115,7 +115,7 @@
                                 </form>
                             @elseif ($myInvite && ! $isMember)
                                 <a href="{{ route('connect-requests.index') }}#invite-{{ $myInvite->id }}" class="btn-primary !px-3 !py-1.5 text-xs">
-                                    <x-ui-icon name="user-plus" class="h-3.5 w-3.5" />You're invited &middot; Respond
+                                    <x-ui-icon name="envelope-open" class="h-3.5 w-3.5" />You're invited &middot; Respond
                                 </a>
                             @elseif ($isPending)
                                 <span class="chip !bg-amber-500/10 !text-amber-700 dark:!text-amber-300">Request pending</span>
@@ -139,7 +139,7 @@
             <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-500 dark:text-ink-400">
                 <span class="inline-flex items-center gap-1"><x-ui-icon name="users" class="h-3.5 w-3.5" />{{ $memberCount }} members</span>
                 @if ($canSeeInside)
-                    <span class="inline-flex items-center gap-1"><x-ui-icon name="message" class="h-3.5 w-3.5" />{{ $posts->count() }} posts</span>
+                    <span class="inline-flex items-center gap-1"><x-ui-icon name="edit" class="h-3.5 w-3.5" />{{ $posts->count() }} posts</span>
                 @endif
             </div>
         </div>
@@ -255,7 +255,7 @@
                         </div>
                     @empty
                         <div class="empty-state !py-8">
-                            <span class="empty-icon"><x-ui-icon name="flag" class="h-5 w-5" /></span>
+                            <span class="empty-icon"><x-ui-icon name="megaphone" class="h-5 w-5" /></span>
                             <h3>Nothing here yet</h3>
                             <p>Announcements posted for this group will appear here and on members' notice boards.</p>
                         </div>
@@ -373,7 +373,7 @@
                         @include('feed._composer', ['group' => $group])
                     @elseif ($group->isArchived())
                         <div class="surface-flat flex items-center gap-2 px-4 py-3 text-sm text-ink-500 dark:text-ink-400">
-                            <x-ui-icon name="inbox" class="h-4 w-4 shrink-0" />
+                            <x-ui-icon name="lock" class="h-4 w-4 shrink-0" />
                             This group is archived, so nothing new can be posted.
                         </div>
                     @elseif ($isMember)
@@ -422,7 +422,7 @@
                         @include('feed._post', ['post' => $post])
                     @empty
                         <div class="empty-state">
-                            <span class="empty-icon"><x-ui-icon name="message" class="h-6 w-6" /></span>
+                            <span class="empty-icon"><x-ui-icon name="edit" class="h-6 w-6" /></span>
                             <h3>Nothing posted yet</h3>
                             <p>
                                 {{ $group->isCourse()

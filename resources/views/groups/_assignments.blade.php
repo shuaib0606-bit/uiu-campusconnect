@@ -252,7 +252,7 @@
                 {{-- Staff view: who has handed in. --}}
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <button type="button" @click="open = ! open" class="btn-secondary !px-3 !py-1.5 text-xs">
-                        <x-ui-icon name="inbox" class="h-3.5 w-3.5" />
+                        <x-ui-icon name="clipboard" class="h-3.5 w-3.5" />
                         <span x-show="! open">View {{ $assignment->submissions_count }} submission{{ $assignment->submissions_count === 1 ? '' : 's' }}</span>
                         <span x-show="open" x-cloak>Hide submissions</span>
                     </button>
