@@ -77,7 +77,10 @@ class AcademicProfileController extends Controller
         DB::transaction(function () use ($data, $existing, $user, &$kept) {
             foreach (array_values($data['sections'] ?? []) as $position => $input) {
                 $title = trim($input['title']);
-                $body = (string) ($input['body'] ?? '');
+                // Browsers send a textarea's line breaks as CRLF, while the
+                // sections are stored with LF. Without this, saving the page
+                // made every untouched website section look edited and locked it.
+                $body = str_replace(["\r\n", "\r"], "\n", (string) ($input['body'] ?? ''));
                 $row = isset($input['id']) ? $existing->get((int) $input['id']) : null;
 
                 if (! $row) {
