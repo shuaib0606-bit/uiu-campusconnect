@@ -25,7 +25,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // CampusConnect's own icons for the admin panel, so a feature shows
+        // the same icon there as in the app (e.g. "campus-pennant" for Clubs).
+        // Kept as SVG files in resources/svg/campus.
+        $this->callAfterResolving(\BladeUI\Icons\Factory::class, function ($factory) {
+            $factory->add('campus', ['path' => resource_path('svg/campus'), 'prefix' => 'campus']);
+        });
     }
 
     public function boot(): void

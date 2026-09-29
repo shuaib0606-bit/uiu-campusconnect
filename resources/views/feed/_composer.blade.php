@@ -86,7 +86,7 @@
         </button>
         <button type="button" @click="openComposer('code')"
             class="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-900/[0.05] dark:text-ink-300 dark:hover:bg-white/[0.06]">
-            <x-ui-icon name="file-text" class="h-5 w-5 text-sky-500" />
+            <x-ui-icon name="code" class="h-5 w-5 text-sky-500" />
             Code
         </button>
     </div>
@@ -331,7 +331,7 @@
                         </button>
                         <button type="button" class="btn-icon" @click="toggleCode()"
                             :class="code ? 'text-primary-600 dark:text-primary-300' : ''" title="Code">
-                            <x-ui-icon name="file-text" class="h-5 w-5" />
+                            <x-ui-icon name="code" class="h-5 w-5" />
                             <span class="sr-only">Post code</span>
                         </button>
                     </div>

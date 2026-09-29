@@ -355,7 +355,7 @@ function ChatList({ conversations, currentId, onPick }) {
                                                 <Icon name="edit" className="h-3.5 w-3.5" />
                                             </button>
                                             <button type="button" onClick={() => { setEditing(null); setConfirming(row.id); }} className="rounded-lg p-1.5 text-ink-400 hover:bg-red-500/10 hover:text-red-600" title="Delete" aria-label={`Delete ${row.title}`}>
-                                                <Icon name="x" className="h-3.5 w-3.5" />
+                                                <Icon name="trash" className="h-3.5 w-3.5" />
                                             </button>
                                         </span>
                                     </li>
@@ -470,7 +470,7 @@ export default function AssistantIndex({
                 <header className="flex items-center justify-between gap-3 pb-4">
                     <div className="flex items-center gap-2.5">
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary-500 text-white">
-                            <Icon name="lightbulb" className="h-5 w-5" />
+                            <Icon name="sparkles" className="h-5 w-5" />
                         </span>
                         <div>
                             <h1 className="text-lg font-semibold tracking-tight">{personaName}</h1>
