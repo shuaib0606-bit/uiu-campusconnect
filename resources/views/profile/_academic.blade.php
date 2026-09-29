@@ -8,12 +8,12 @@
 --}}
 @php
     $sectionUrl = fn ($s) => route('profile.show', [$profileUser, 'tab' => 'academic', 'section' => $s->slug()]);
-    $badge = [\App\Support\Visibility::ONLY_ME => ['lock', 'Only you'], \App\Support\Visibility::MEMBERS => ['users', 'UIU members']];
+    $badge = [\App\Support\Visibility::ONLY_ME => ['lock', 'Only you'], \App\Support\Visibility::MEMBERS => ['globe', 'UIU members']];
 @endphp
 
 @if ($sections->isEmpty())
     <div class="surface mx-auto w-full max-w-[880px] p-8 text-center">
-        <x-ui-icon name="file-text" class="mx-auto mb-3 h-8 w-8 text-ink-300" />
+        <x-ui-icon name="academic" class="mx-auto mb-3 h-8 w-8 text-ink-300" />
         @if ($isOwn)
             <h2 class="text-lg font-black">Add your academic profile</h2>
             <p class="mx-auto mt-1 max-w-md text-sm text-ink-500 dark:text-ink-400">Education, research, publications, courses - add the sections you want and choose who sees each one.</p>

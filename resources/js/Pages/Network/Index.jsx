@@ -153,7 +153,7 @@ export default function NetworkIndex({ people, filters }) {
 
                 {people.data.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="users" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="network" className="h-6 w-6" /></span>
                         <h3>No people found</h3>
                         <p>Try another keyword or clear the role filter.</p>
                     </div>

@@ -131,10 +131,10 @@
                                     <x-ui-icon name="flag" class="h-4 w-4" />Report
                                 </button>
 
-                                <form x-show="reporting" x-cloak method="POST" action="{{ route('profile.report', $profileUser) }}" class="px-4 py-2.5">
+                                <form x-show="reporting" x-cloak method="POST" action="{{ route('profile.report', $profileUser) }}" class="px-4 py-2.5" x-data="{ reason: '', details: '' }">
                                     @csrf
                                     <span class="block text-xs font-medium text-ink-600 dark:text-ink-300">Why are you reporting this profile?</span>
-                                    <select name="reason" required class="field mt-1.5 !py-1.5 text-xs">
+                                    <select name="reason" required x-model="reason" class="field mt-1.5 !py-1.5 text-xs">
                                         <option value="">Choose a reason</option>
                                         <option>Fake or impersonating account</option>
                                         <option>Harassment or bullying</option>
@@ -142,6 +142,7 @@
                                         <option>Spam account</option>
                                         <option>Something else</option>
                                     </select>
+                                    <x-report-details />
                                     <div class="mt-2 flex gap-2">
                                         <button type="submit" class="btn-primary !px-3 !py-1.5 text-xs">Send report</button>
                                         <button type="button" @click="reporting = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>
