@@ -162,7 +162,7 @@ export default function UserApprovals({ requests, statusCounts, tab, filters }) 
 
                 {requests.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="shield" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="user-check" className="h-6 w-6" /></span>
                         <h3>No records found</h3>
                         <p>There are no users in this approval category right now.</p>
                     </div>

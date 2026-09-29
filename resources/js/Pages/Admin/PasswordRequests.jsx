@@ -109,9 +109,9 @@ export default function PasswordRequests({ requests, tab, counts, issued, issued
         <AppLayout title="Password recovery">
             <div className="mx-auto max-w-4xl">
                 <div className="hero-panel mb-5 p-7">
-                    <Icon name="lock" className="hero-icon" />
+                    <Icon name="key" className="hero-icon" />
                     <div className="relative z-10">
-                        <p className="eyebrow"><Icon name="shield" className="h-3.5 w-3.5" />Admin only</p>
+                        <p className="eyebrow"><Icon name="key" className="h-3.5 w-3.5" />Admin only</p>
                         <h1 className="hero-title mt-2">Password recovery requests</h1>
                         <p className="section-sub mt-2 max-w-lg">
                             Verify who the person is before approving. Approving issues a new temporary password and
@@ -156,7 +156,7 @@ export default function PasswordRequests({ requests, tab, counts, issued, issued
 
                 {requests.data.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="lock" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="key" className="h-6 w-6" /></span>
                         <h3>Nothing here</h3>
                         <p>No {tab === 'all' ? '' : tab} recovery requests.</p>
                     </div>

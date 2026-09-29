@@ -140,7 +140,7 @@ function SectionRow({ section, canManage }) {
 
                         <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-500 dark:text-ink-400">
                             <span className="inline-flex items-center gap-1">
-                                <Icon name="users" className="h-3.5 w-3.5" />
+                                <Icon name="class" className="h-3.5 w-3.5" />
                                 {section.student_count} enrolled
                                 {section.seat_limit ? ` of ${section.seat_limit}` : ''}
                             </span>
@@ -276,7 +276,7 @@ export default function Administration({ trimesters, trimester, sections, totals
                         <div className="space-y-3">
                             {sections.length === 0 ? (
                                 <div className="empty-state">
-                                    <span className="empty-icon"><Icon name="building" className="h-6 w-6" /></span>
+                                    <span className="empty-icon"><Icon name="briefcase" className="h-6 w-6" /></span>
                                     <h3>No sections in this trimester</h3>
                                     <p>Import a class list, or add one above.</p>
                                 </div>
