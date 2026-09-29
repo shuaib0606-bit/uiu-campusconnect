@@ -38,9 +38,9 @@
 
     $tiles = [
         'shuttle' => ['title' => 'Shuttle', 'icon' => 'bus', 'tone' => 'bg-sky-500/12 text-sky-600 dark:text-sky-300'],
-        'deadlines' => ['title' => 'Deadlines', 'icon' => 'clock', 'tone' => 'bg-orange-500/12 text-orange-600 dark:text-orange-300'],
+        'deadlines' => ['title' => 'Deadlines', 'icon' => 'hourglass', 'tone' => 'bg-orange-500/12 text-orange-600 dark:text-orange-300'],
         'calendar' => ['title' => 'Calendar', 'icon' => 'calendar', 'tone' => 'bg-primary-500/12 text-primary-600 dark:text-primary-300'],
-        'events' => ['title' => 'Events', 'icon' => 'megaphone', 'tone' => 'bg-pink-500/12 text-pink-600 dark:text-pink-300'],
+        'events' => ['title' => 'Events', 'icon' => 'ticket', 'tone' => 'bg-pink-500/12 text-pink-600 dark:text-pink-300'],
         'clubs' => ['title' => 'Clubs', 'icon' => 'award', 'tone' => 'bg-amber-500/12 text-amber-600 dark:text-amber-300'],
     ];
 @endphp
@@ -74,7 +74,7 @@
         </button>
 
         <button type="button" @click="panel = 'deadlines'" class="rail-tile">
-            <span class="rail-tile-icon {{ $tiles['deadlines']['tone'] }}"><x-ui-icon name="clock" class="h-6 w-6" /></span>
+            <span class="rail-tile-icon {{ $tiles['deadlines']['tone'] }}"><x-ui-icon name="hourglass" class="h-6 w-6" /></span>
             <span class="rail-tile-title">Deadlines</span>
             <span @class(['rail-tile-fact', '!text-red-600 dark:!text-red-400' => $overdue > 0])>
                 @if ($overdue > 0)
@@ -98,7 +98,7 @@
         </button>
 
         <button type="button" @click="panel = 'events'" class="rail-tile">
-            <span class="rail-tile-icon {{ $tiles['events']['tone'] }}"><x-ui-icon name="megaphone" class="h-6 w-6" /></span>
+            <span class="rail-tile-icon {{ $tiles['events']['tone'] }}"><x-ui-icon name="ticket" class="h-6 w-6" /></span>
             <span class="rail-tile-title">Events</span>
             <span class="rail-tile-fact">{{ $upcomingEvents->isEmpty() ? 'None coming up' : $upcomingEvents->count().' coming up' }}</span>
             <span class="rail-tile-sub">{{ $nextEvent ? $nextEvent->start_datetime->format('D, M j') : 'Browse events' }}</span>
@@ -149,7 +149,7 @@
                         <div class="space-y-3">
                             @foreach ($upcomingEvents as $event)
                                 <a href="{{ route('events.show', $event) }}" class="group flex items-start gap-3">
-                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-300"><x-ui-icon name="calendar" class="h-4 w-4" /></span>
+                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-300"><x-ui-icon name="ticket" class="h-4 w-4" /></span>
                                     <span class="min-w-0">
                                         <span class="block truncate text-sm font-medium group-hover:underline">{{ $event->title }}</span>
                                         <span class="block text-xs text-ink-500 dark:text-ink-400">{{ $event->start_datetime->format('D, M j, g:i A') }}</span>

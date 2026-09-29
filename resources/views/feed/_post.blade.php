@@ -148,10 +148,10 @@
                         <x-ui-icon name="flag" class="h-4 w-4 shrink-0" />Report post
                     </button>
 
-                    <form x-show="reporting" x-cloak action="{{ route('posts.report', $post) }}" method="POST" class="px-4 py-2.5">
+                    <form x-show="reporting" x-cloak action="{{ route('posts.report', $post) }}" method="POST" class="px-4 py-2.5" x-data="{ reason: '', details: '' }">
                         @csrf
                         <span class="block text-xs font-medium text-ink-600 dark:text-ink-300">Why are you reporting this?</span>
-                        <select name="reason" required class="field mt-1.5 !py-1.5 text-xs">
+                        <select name="reason" required x-model="reason" class="field mt-1.5 !py-1.5 text-xs">
                             <option value="">Choose a reason</option>
                             <option>Spam or advertising</option>
                             <option>Harassment or bullying</option>
@@ -159,6 +159,7 @@
                             <option>Inappropriate content</option>
                             <option>Something else</option>
                         </select>
+                        <x-report-details />
                         <div class="mt-2 flex gap-2">
                             <button type="submit" class="btn-primary !px-3 !py-1.5 text-xs">Send report</button>
                             <button type="button" @click="reporting = false" class="btn-ghost !px-3 !py-1.5 text-xs">Cancel</button>

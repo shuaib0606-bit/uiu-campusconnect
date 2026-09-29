@@ -186,7 +186,7 @@ class CommentController extends Controller
 
     public function report(Request $request, Comment $comment)
     {
-        $data = $request->validate(['reason' => ['required', 'string', 'max:255']]);
+        $data = \App\Support\ReportReasons::validate($request);
 
         CommentReport::updateOrCreate([
             'comment_id' => $comment->id,

@@ -390,7 +390,7 @@ class PostController extends Controller
     {
         abort_unless($post->isOpenTo($request->user()), 404);
 
-        $data = $request->validate(['reason' => ['required', 'string', 'max:255']]);
+        $data = \App\Support\ReportReasons::validate($request);
 
         Report::updateOrCreate([
             'reporter_id' => $request->user()->id,
