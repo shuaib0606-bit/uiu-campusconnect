@@ -34,7 +34,7 @@
 
             @if (! $hasAny)
                 <div class="empty-state">
-                    <span class="empty-icon"><x-ui-icon name="question-mark-circle" class="h-6 w-6" /></span>
+                    <span class="empty-icon"><x-ui-icon name="search" class="h-6 w-6" /></span>
                     <h3>No results</h3>
                     <p>Try a different keyword or filter.</p>
                 </div>
