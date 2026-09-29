@@ -37,7 +37,9 @@ class GroupController extends Controller
         // not search for a class you are already in.
         $mine = $viewer
             ? CommunityGroup::query()
-                ->whereIn('kind', [CommunityGroup::KIND_COURSE, CommunityGroup::KIND_CLUB])
+                // Classes, clubs, and the student groups this person made
+                // or joined (for example by accepting an invitation).
+                ->whereIn('kind', [CommunityGroup::KIND_COURSE, CommunityGroup::KIND_CLUB, CommunityGroup::KIND_OPEN])
                 ->whereExists(fn ($sub) => $sub->selectRaw('1')
                     ->from('community_group_members')
                     ->whereColumn('community_group_members.group_id', 'community_groups.id')
@@ -71,10 +73,12 @@ class GroupController extends Controller
                 'id' => $group->id,
                 'name' => $group->name,
                 'kind' => $group->kind,
-                'kind_label' => $group->isCourse() ? 'Course' : 'Club',
+                'kind_label' => $group->isCourse() ? 'Course' : ($group->isClub() ? 'Club' : ucfirst((string) $group->group_type)),
                 'line' => $group->isCourse()
                     ? ($group->section?->scheduleLine() ?? 'Schedule not published')
-                    : $group->description,
+                    : Str::limit((string) $group->description, 140),
+                'is_private' => $group->isPrivate(),
+                'is_owner' => $group->isOwnedBy($viewer),
                 'term' => $group->isCourse() ? ($group->section?->trimester?->name) : null,
                 'is_archived' => $group->isArchived(),
                 'notice' => $group->lifecycleNotice()['text'] ?? null,
@@ -134,7 +138,12 @@ class GroupController extends Controller
 
         $group->members()->syncWithoutDetaching([$request->user()->id => ['role' => 'owner']]);
 
-        return redirect()->route('groups.index')->with('success', 'Group created.');
+        // Straight into the new group, where the Invite button is. The form
+        // posts through Inertia and the group page is not an Inertia page,
+        // so this has to be a full page visit rather than a plain redirect.
+        session()->flash('success', 'Group created. Use "Invite people" to add members - they join once they accept.');
+
+        return Inertia::location(route('groups.show', $group));
     }
 
     public function show(Request $request, CommunityGroup $group)
@@ -187,9 +196,37 @@ class GroupController extends Controller
         // The wall deliberately skips scopeVisible, which is what keeps group
         // posts out of the feed. forViewer still applies, so a blocked or
         // muted author stays hidden here too.
-        $posts = $canSeeInside
+        $wallWith = [
+            'user.profile', 'reactions', 'saves', 'pollOptions.votes',
+            'comments.user.profile', 'comments.likes',
+            'comments.replies.user.profile', 'comments.replies.likes',
+        ];
+
+        // Posts waiting for approval: the author sees their own (marked as
+        // waiting); the people running the group see all of them, to decide.
+        $myWaiting = $canSeeInside && $viewer
             ? Post::where('posts.group_id', $group->id)
                 ->where('posts.is_deleted', false)
+                ->where('posts.user_id', $viewer->id)
+                ->whereIn('posts.approval_status', [Post::APPROVAL_PENDING, Post::APPROVAL_REJECTED])
+                ->with($wallWith)
+                ->latest()
+                ->limit(10)
+                ->get()
+            : collect();
+
+        $approvalQueue = $canSeeInside && $isStaff
+            ? Post::where('posts.group_id', $group->id)
+                ->where('posts.is_deleted', false)
+                ->where('posts.approval_status', Post::APPROVAL_PENDING)
+                ->with($wallWith)
+                ->oldest()
+                ->limit(50)
+                ->get()
+            : collect();
+
+        $posts = $canSeeInside
+            ? Post::publishedInGroup($group->id)
                 ->forViewer($viewer)
                 // Mirrors the feed's eager loads: _post.blade.php walks poll
                 // votes and comment replies, and without these it is an N+1
@@ -225,6 +262,21 @@ class GroupController extends Controller
             'assignments' => $assignments,
             'notices' => $notices,
             'posts' => $posts,
+            'myWaiting' => $myWaiting,
+            'approvalQueue' => $approvalQueue,
+            'needsApproval' => $group->needsApproval($viewer),
+            'postingModes' => CommunityGroup::POSTING_MODES,
+            'postingMode' => $group->postingMode(),
+            // Only the creator of a student-made group invites people.
+            'canInvite' => \App\Support\GroupInvites::canInviteTo($viewer, $group),
+            'sentInvites' => \App\Support\GroupInvites::canInviteTo($viewer, $group)
+                ? $group->invites()->where('status', \App\Models\GroupInvite::PENDING)->with('user')->latest()->get()
+                : collect(),
+            // An invitation this visitor has not answered yet.
+            'myInvite' => $viewer && ! $isMember
+                ? \App\Models\GroupInvite::where('group_id', $group->id)->where('user_id', $viewer->id)
+                    ->where('status', \App\Models\GroupInvite::PENDING)->first()
+                : null,
             'memberCount' => $group->members()->count(),
             'isMember' => $isMember,
             'isStaff' => $isStaff,
@@ -238,8 +290,7 @@ class GroupController extends Controller
             // chat. Everyone else sees it only once it is on - a chat tab
             // that opens onto a room you may not speak in is worse than no
             // tab at all.
-            'chatVisible' => $canSeeInside
-                && ($isStaff || $group->posting_mode === CommunityGroup::POSTING_EVERYONE),
+            'chatVisible' => $canSeeInside && $group->canChat($viewer),
             'notice' => $group->lifecycleNotice(),
         ]);
     }
@@ -335,21 +386,105 @@ class GroupController extends Controller
         return back()->with('success', $user->full_name.' has been removed.');
     }
 
-    /** The teacher's switch: announcements only, or a conversation. */
+    /**
+     * Who may post on the wall: only the people running the group, members
+     * they pick, everyone with approval, or everyone. Works the same for a
+     * student's group, a class (the teacher decides) and a club group.
+     */
     public function togglePosting(Request $request, CommunityGroup $group)
     {
         abort_unless($group->canManage($request->user()), 403);
         abort_if($group->isArchived(), 403, 'This group is archived.');
 
-        $open = $group->posting_mode === CommunityGroup::POSTING_EVERYONE;
+        $data = $request->validate([
+            'mode' => ['nullable', 'string', 'in:'.implode(',', array_keys(CommunityGroup::POSTING_MODES))],
+        ]);
 
-        $group->forceFill([
-            'posting_mode' => $open ? CommunityGroup::POSTING_STAFF : CommunityGroup::POSTING_EVERYONE,
-        ])->save();
+        // Without a mode this is the old on/off switch.
+        $mode = $data['mode'] ?? ($group->postingMode() === CommunityGroup::POSTING_EVERYONE
+            ? CommunityGroup::POSTING_STAFF
+            : CommunityGroup::POSTING_EVERYONE);
 
-        return back()->with('success', $open
-            ? 'Members can no longer post. Only you can now.'
-            : 'Members can now post in this group.');
+        $group->forceFill(['posting_mode' => $mode])->save();
+
+        $message = match ($mode) {
+            CommunityGroup::POSTING_STAFF => 'Only you can post now. Members can read.',
+            CommunityGroup::POSTING_SELECTED => 'Only the members you pick can post. Pick them in the member list.',
+            CommunityGroup::POSTING_APPROVAL => 'Members can post, and each post waits for your approval.',
+            default => 'Every member can post now.',
+        };
+
+        return back()->with('success', $message);
+    }
+
+    /** Picks or unpicks a member to post while the group is on "selected members". */
+    public function toggleMemberPosting(Request $request, CommunityGroup $group, User $user)
+    {
+        abort_unless($group->canManage($request->user()), 403);
+        abort_if($group->isArchived(), 403, 'This group is archived.');
+        abort_unless($group->hasMember($user), 404);
+
+        if ($group->isStaff($user)) {
+            return back()->with('error', 'The people running this group can always post.');
+        }
+
+        $current = (bool) $this->pivot($group)->where('user_id', $user->id)->value('can_post');
+        $this->pivot($group)->where('user_id', $user->id)->update(['can_post' => ! $current]);
+
+        return back()->with('success', $current
+            ? $user->full_name.' can no longer post.'
+            : $user->full_name.' can now post.');
+    }
+
+    /** Publishes a post that was waiting for approval. */
+    public function approvePost(Request $request, CommunityGroup $group, Post $post)
+    {
+        $this->authorizeReview($request, $group, $post);
+
+        $post->forceFill(['approval_status' => null])->save();
+
+        \App\Support\Notifier::send(
+            $post->user_id,
+            $request->user(),
+            \App\Support\Notifier::GROUP_POST_REVIEWED,
+            'group',
+            $group->id,
+            'approved your post in '.$group->name.'.'
+        );
+
+        // Mentions wait until a post is public in the group, so nobody is
+        // told about a post they cannot yet see.
+        foreach (\App\Support\Mentions::sync($post, $post->body, (int) $post->user_id) as $mentioned) {
+            \App\Support\Notifier::send($mentioned->id, $post->user, \App\Support\Notifier::MENTION, 'post', $post->id, 'mentioned you in a post.');
+        }
+
+        return back()->with('success', 'Post approved. Everyone in the group can see it now.');
+    }
+
+    /** Turns down a waiting post. Its author can still see it, marked as declined. */
+    public function rejectPost(Request $request, CommunityGroup $group, Post $post)
+    {
+        $this->authorizeReview($request, $group, $post);
+
+        $post->forceFill(['approval_status' => Post::APPROVAL_REJECTED])->save();
+
+        \App\Support\Notifier::send(
+            $post->user_id,
+            $request->user(),
+            \App\Support\Notifier::GROUP_POST_REVIEWED,
+            'group',
+            $group->id,
+            'did not approve your post in '.$group->name.'.'
+        );
+
+        return back()->with('success', 'Post declined. Only its author can see it.');
+    }
+
+    private function authorizeReview(Request $request, CommunityGroup $group, Post $post): void
+    {
+        abort_unless((int) $post->group_id === (int) $group->id, 404);
+        abort_unless($group->canManage($request->user()), 403);
+        abort_unless($post->isAwaitingApproval() && ! $post->is_deleted, 409, 'This post is not waiting for approval.');
     }
 
     /** Puts up a slide deck or a reading. */

@@ -38,8 +38,15 @@
                             </span>
                         @endif
 
-                        @if ($group->posting_mode === \App\Models\CommunityGroup::POSTING_STAFF && ! $group->isOpen())
-                            <span class="chip">Announcements only</span>
+                        @php
+                            $ruleChip = [
+                                \App\Models\CommunityGroup::POSTING_STAFF => 'Announcements only',
+                                \App\Models\CommunityGroup::POSTING_SELECTED => 'Selected members post',
+                                \App\Models\CommunityGroup::POSTING_APPROVAL => 'Posts need approval',
+                            ][$postingMode] ?? null;
+                        @endphp
+                        @if ($ruleChip && ! $group->isArchived())
+                            <span class="chip">{{ $ruleChip }}</span>
                         @endif
                     </div>
 
@@ -87,6 +94,12 @@
                         </button>
                     @endif
 
+                    @if ($canInvite)
+                        <button type="button" data-invite-open @click="$dispatch('open-invite')" class="btn-primary !px-3 !py-1.5 text-xs">
+                            <x-ui-icon name="user-plus" class="h-3.5 w-3.5" />Invite people
+                        </button>
+                    @endif
+
                     @if ($canManage)
                         <button type="button" @click="panel = panel === 'manage' ? null : 'manage'" class="btn-secondary !px-3 !py-1.5 text-xs">
                             <x-ui-icon name="settings" class="h-3.5 w-3.5" />Manage
@@ -100,6 +113,10 @@
                                     @csrf
                                     <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs">Leave group</button>
                                 </form>
+                            @elseif ($myInvite && ! $isMember)
+                                <a href="{{ route('connect-requests.index') }}#invite-{{ $myInvite->id }}" class="btn-primary !px-3 !py-1.5 text-xs">
+                                    <x-ui-icon name="user-plus" class="h-3.5 w-3.5" />You're invited &middot; Respond
+                                </a>
                             @elseif ($isPending)
                                 <span class="chip !bg-amber-500/10 !text-amber-700 dark:!text-amber-300">Request pending</span>
                             @elseif (! $isMember)
@@ -144,6 +161,8 @@
                         Only the people enrolled in this section and the course teacher can see inside.
                     @elseif ($group->isClub())
                         Join the club to see its group.
+                    @elseif ($myInvite)
+                        You've been invited. Accept the invitation to see the posts, members and files.
                     @elseif ($isPending)
                         Your request is with the group owner. Posts, members and files appear once it is accepted.
                     @else
@@ -250,22 +269,40 @@
                     <h2 class="text-[15px] font-semibold">Manage this group</h2>
 
                     @unless ($group->isArchived())
-                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ink-900/[0.03] p-3.5 dark:bg-white/[0.04]">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold">Student communication</p>
-                                <p class="section-sub">
-                                    {{ $group->posting_mode === \App\Models\CommunityGroup::POSTING_EVERYONE
-                                        ? 'Members can post on the wall and use the class chat.'
-                                        : 'Only you can post. Students cannot see the chat at all while this is off.' }}
-                                </p>
+                        {{-- Who may post: one of four rules, the same for a
+                             student's group, a class and a club group. --}}
+                        <form method="POST" action="{{ route('groups.posting-mode', $group) }}"
+                              class="mt-4 rounded-xl bg-ink-900/[0.03] p-3.5 dark:bg-white/[0.04]"
+                              x-data="{ mode: @js($postingMode) }">
+                            @csrf
+                            <p class="text-sm font-semibold">Who can post</p>
+                            <p class="section-sub">Applies to the wall and the group chat. Posts in a group only ever appear inside this group.</p>
+
+                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                @foreach ($postingModes as $value => $rule)
+                                    <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition"
+                                           :class="mode === @js($value) ? 'border-primary-500 bg-primary-500/5' : 'border-ink-200 dark:border-ink-700'">
+                                        <input type="radio" name="mode" value="{{ $value }}" x-model="mode" class="mt-0.5 accent-primary-600">
+                                        <span class="min-w-0">
+                                            <span class="block text-sm font-medium">{{ $rule['label'] }}</span>
+                                            <span class="section-sub block">{{ $rule['hint'] }}</span>
+                                        </span>
+                                    </label>
+                                @endforeach
                             </div>
-                            <form method="POST" action="{{ route('groups.posting-mode', $group) }}">
-                                @csrf
-                                <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs whitespace-nowrap">
-                                    {{ $group->posting_mode === \App\Models\CommunityGroup::POSTING_EVERYONE ? 'Turn off' : 'Turn on' }}
-                                </button>
-                            </form>
-                        </div>
+
+                            <p x-show="mode === 'selected'" x-cloak class="section-sub mt-2.5">
+                                Pick who can post with the switch beside each name in the member list.
+                            </p>
+                            <p x-show="mode === 'approval'" x-cloak class="section-sub mt-2.5">
+                                The group chat stays closed to members in this mode, because chat messages can't be approved one by one.
+                            </p>
+
+                            <button type="submit" class="btn-primary mt-3" :disabled="mode === @js($postingMode)"
+                                    :class="mode === @js($postingMode) && 'opacity-50 cursor-not-allowed'">
+                                Save posting rule
+                            </button>
+                        </form>
                     @endunless
 
                     @if ($group->isOpen() && ! $group->isArchived())
@@ -342,11 +379,44 @@
                     @elseif ($isMember)
                         <div class="surface-flat flex items-center gap-2 px-4 py-3 text-sm text-ink-500 dark:text-ink-400">
                             <x-ui-icon name="lock" class="h-4 w-4 shrink-0" />
-                            {{ $group->isCourse()
-                                ? 'Only the course teacher can post here. They can turn on student posting if they want a discussion.'
-                                : 'Only the people running this group can post here.' }}
+                            @if ($postingMode === \App\Models\CommunityGroup::POSTING_SELECTED)
+                                Only members picked by {{ $group->isCourse() ? 'the teacher' : 'the group owner' }} can post here.
+                            @else
+                                {{ $group->isCourse()
+                                    ? 'Only the course teacher can post here. They can open posting to students if they want a discussion.'
+                                    : 'Only the people running this group can post here.' }}
+                            @endif
                         </div>
                     @endif
+
+                    @if ($canPost && $needsApproval)
+                        <p class="-mt-2 flex items-center gap-1.5 px-1 text-xs text-ink-500 dark:text-ink-400">
+                            <x-ui-icon name="clock" class="h-3.5 w-3.5" />
+                            Your posts here are reviewed by {{ $group->isCourse() ? 'the teacher' : 'the group owner' }} before others see them.
+                        </p>
+                    @endif
+
+                    {{-- For whoever runs the group: posts waiting for a decision. --}}
+                    @if ($approvalQueue->isNotEmpty())
+                        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
+                            <h2 class="mb-3 flex items-center gap-2 text-[15px] font-semibold">
+                                <x-ui-icon name="clock" class="h-4 w-4 text-amber-600" />
+                                Waiting for your approval ({{ $approvalQueue->count() }})
+                            </h2>
+                            <div class="space-y-3">
+                                @foreach ($approvalQueue as $waitingPost)
+                                    @include('groups._pending_post', ['post' => $waitingPost, 'mode' => 'review'])
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- The viewer's own posts that are not on the wall yet. --}}
+                    @foreach ($myWaiting as $waitingPost)
+                        @unless ($approvalQueue->contains('id', $waitingPost->id))
+                            @include('groups._pending_post', ['post' => $waitingPost, 'mode' => 'mine'])
+                        @endunless
+                    @endforeach
 
                     @forelse ($posts as $post)
                         @include('feed._post', ['post' => $post])
@@ -390,6 +460,28 @@
                         </div>
                     @endif
 
+                    @if ($sentInvites->isNotEmpty())
+                        <div class="surface p-5">
+                            <h2 class="mb-1 text-[15px] font-semibold">Invited ({{ $sentInvites->count() }})</h2>
+                            <p class="section-sub mb-3">They join once they accept.</p>
+                            <div class="rail-scroll max-h-64 space-y-3 overflow-y-auto">
+                                @foreach ($sentInvites as $invite)
+                                    <div class="flex items-center gap-3">
+                                        <x-user-avatar :user="$invite->user" size="h-8 w-8" text="text-[11px]" />
+                                        <div class="min-w-0 flex-1">
+                                            <a href="{{ route('profile.show', $invite->user) }}" class="block truncate text-sm font-semibold hover:underline">{{ $invite->user->full_name }}</a>
+                                            <p class="section-sub truncate">Invited {{ $invite->updated_at->diffForHumans() }}</p>
+                                        </div>
+                                        <form method="POST" action="{{ route('groups.invites.cancel', [$group, $invite]) }}">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-ghost !px-2 !py-1 text-xs" title="Withdraw invitation">Withdraw</button>
+                                        </form>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="surface p-5">
                         <h2 class="mb-3 text-[15px] font-semibold">
                             {{ $group->isCourse() ? 'Class list' : 'Members' }}
@@ -405,6 +497,18 @@
                                             {{ $roleOf($member) }}{{ $member->student_id ? ' · '.$member->student_id : '' }}
                                         </p>
                                     </div>
+                                    @if ($canManage && $postingMode === \App\Models\CommunityGroup::POSTING_SELECTED
+                                        && ! $group->isArchived() && ! in_array($member->pivot->role, \App\Models\CommunityGroup::STAFF_ROLES, true)
+                                        && ! $group->isOwnedBy($member))
+                                        <form method="POST" action="{{ route('groups.members.can-post', [$group, $member]) }}">
+                                            @csrf
+                                            <button type="submit"
+                                                class="rounded-full px-2 py-0.5 text-[11px] font-semibold transition {{ $member->pivot->can_post ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-ink-900/[0.05] text-ink-500 dark:bg-white/[0.06] dark:text-ink-400' }}"
+                                                title="{{ $member->pivot->can_post ? 'Click to stop them posting' : 'Click to let them post' }}">
+                                                {{ $member->pivot->can_post ? 'Can post' : "Can't post" }}
+                                            </button>
+                                        </form>
+                                    @endif
                                     @if ($canManage && ! $group->isOwnedBy($member) && ! $group->isClub() && ! $group->isArchived())
                                         <form method="POST" action="{{ route('groups.members.remove', [$group, $member]) }}">
                                             @csrf @method('DELETE')
@@ -421,6 +525,10 @@
                     </div>
                 </div>
             </div>
+        @endif
+
+        @if ($canInvite)
+            @include('groups._invite_modal')
         @endif
     </div>
 </x-app-layout>

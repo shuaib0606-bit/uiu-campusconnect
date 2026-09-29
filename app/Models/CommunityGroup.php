@@ -30,8 +30,25 @@ class CommunityGroup extends Model
     /** Only the people running the room may post. */
     public const POSTING_STAFF = 'staff';
 
+    /** Only members the people running the room have picked may post. */
+    public const POSTING_SELECTED = 'selected';
+
+    /** Any member may post, but each post waits for approval first. */
+    public const POSTING_APPROVAL = 'approval';
+
     /** Anybody in the room may post. */
     public const POSTING_EVERYONE = 'everyone';
+
+    /**
+     * The posting rules, in the order the settings page offers them.
+     * Wording is from the point of view of whoever runs the group.
+     */
+    public const POSTING_MODES = [
+        self::POSTING_STAFF => ['label' => 'Only me', 'hint' => 'Nobody else can post. Members read only.', 'public' => 'Only the owner'],
+        self::POSTING_SELECTED => ['label' => 'Selected members', 'hint' => 'Only the members you pick can post.', 'public' => 'Selected members'],
+        self::POSTING_APPROVAL => ['label' => 'Everyone, with my approval', 'hint' => 'Anyone can post, but you approve each post before others see it.', 'public' => 'Everyone, after owner approval'],
+        self::POSTING_EVERYONE => ['label' => 'Everyone', 'hint' => 'Any member can post straight away.', 'public' => 'Everyone'],
+    ];
 
     /** Pivot role for somebody who has asked to join a private open group. */
     public const PENDING = 'pending';
@@ -66,8 +83,14 @@ class CommunityGroup extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'community_group_members', 'group_id', 'user_id')
-            ->withPivot('role')
+            ->withPivot('role', 'can_post')
             ->wherePivot('role', '!=', self::PENDING);
+    }
+
+    /** Invitations sent from this group, answered or not. */
+    public function invites(): HasMany
+    {
+        return $this->hasMany(GroupInvite::class, 'group_id');
     }
 
     /** People waiting for the owner to let them in. */
@@ -204,14 +227,71 @@ class CommunityGroup extends Model
 
     // --------------------------------------------------------- what is allowed
 
-    /** Nothing can be written to an archived room, by anybody. */
+    /**
+     * Whether this person may write on the wall at all. In "approval" mode
+     * the answer is yes, but the post waits - see needsApproval().
+     * Nothing can be written to an archived room, by anybody.
+     */
     public function canPost(?User $user): bool
     {
         if ($this->isArchived() || ! $this->hasMember($user)) {
             return false;
         }
 
-        return $this->posting_mode === self::POSTING_EVERYONE || $this->isStaff($user);
+        if ($this->isStaff($user)) {
+            return true;
+        }
+
+        return match ($this->postingMode()) {
+            self::POSTING_EVERYONE, self::POSTING_APPROVAL => true,
+            self::POSTING_SELECTED => $this->isSelectedPoster($user),
+            default => false,
+        };
+    }
+
+    /** A member's post that has to be approved before anyone else sees it. */
+    public function needsApproval(?User $user): bool
+    {
+        return $this->postingMode() === self::POSTING_APPROVAL && ! $this->isStaff($user);
+    }
+
+    /**
+     * The group chat has no approval queue, so it follows the posting rule
+     * without the "approval" case: staff always; everyone when the wall is
+     * open; the picked members when it is "selected".
+     */
+    public function canChat(?User $user): bool
+    {
+        if (! $this->hasMember($user)) {
+            return false;
+        }
+
+        if ($this->isStaff($user)) {
+            return true;
+        }
+
+        return match ($this->postingMode()) {
+            self::POSTING_EVERYONE => true,
+            self::POSTING_SELECTED => $this->isSelectedPoster($user),
+            default => false,
+        };
+    }
+
+    /** Picked to post while the group is set to "selected members". */
+    public function isSelectedPoster(?User $user): bool
+    {
+        return $user !== null && $this->members()
+            ->where('users.id', $user->id)
+            ->where('community_group_members.can_post', true)
+            ->exists();
+    }
+
+    /** The stored rule, with anything unrecognised treated as "only me". */
+    public function postingMode(): string
+    {
+        return array_key_exists((string) $this->posting_mode, self::POSTING_MODES)
+            ? (string) $this->posting_mode
+            : self::POSTING_STAFF;
     }
 
     /** Slides and notices are put up by the people running the room. */

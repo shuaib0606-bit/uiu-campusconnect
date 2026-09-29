@@ -53,7 +53,7 @@ class GroupChatController extends Controller
 
         return response()->json([
             'messages' => $messages->map(fn (GroupMessage $message) => $message->forBrowser())->values(),
-            'can_send' => $group->canPost($request->user()),
+            'can_send' => $group->canChat($request->user()),
         ]);
     }
 
@@ -63,7 +63,7 @@ class GroupChatController extends Controller
 
         // canPost is the same rule the wall uses: staff always, everyone
         // else only when the group is set to let members post.
-        abort_unless($group->canPost($user), 403, 'Only staff can write in this group right now.');
+        abort_unless($group->canChat($user), 403, 'You cannot write in this group\'s chat right now.');
         abort_if($group->isArchived(), 403, 'This group is archived.');
 
         $key = 'chat:'.$group->id.':'.$user->id;
@@ -120,12 +120,9 @@ class GroupChatController extends Controller
     {
         $user = $request->user();
 
-        if (! $group->hasMember($user)) {
-            return false;
-        }
-
-        return $group->isStaff($user)
-            || $group->posting_mode === CommunityGroup::POSTING_EVERYONE;
+        // The same rule decides who may read and who may write: a chat
+        // you can open but never speak in is worse than no chat tab.
+        return $group->canChat($user);
     }
 
     /**

@@ -86,6 +86,7 @@ function MyGroups({ mine }) {
 
     const courses = mine.filter((g) => g.kind === 'course');
     const clubs = mine.filter((g) => g.kind === 'club');
+    const own = mine.filter((g) => g.kind === 'open');
 
     const card = (group) => (
         <a
@@ -96,6 +97,10 @@ function MyGroups({ mine }) {
             <div className="flex flex-wrap items-center gap-1.5">
                 <span className="chip !bg-primary-500/10 !text-primary-700 dark:!text-primary-300">{group.kind_label}</span>
                 {group.term && <span className="chip">{group.term}</span>}
+                {group.is_owner && <span className="chip">You made this</span>}
+                {group.kind === 'open' && group.is_private && (
+                    <span className="chip !bg-amber-500/10 !text-amber-700 dark:!text-amber-300">Private</span>
+                )}
                 {group.is_archived && <span className="chip">Archived</span>}
             </div>
 
@@ -131,6 +136,13 @@ function MyGroups({ mine }) {
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{clubs.map(card)}</div>
                 </section>
             )}
+
+            {own.length > 0 && (
+                <section className="mb-6">
+                    <h2 className="mb-2 text-sm font-semibold text-ink-500 dark:text-ink-400">Your groups</h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{own.map(card)}</div>
+                </section>
+            )}
         </>
     );
 }
@@ -152,8 +164,7 @@ export default function GroupsIndex({ mine, groups, filters, canCreate }) {
                     <div>
                         <h1>Groups</h1>
                         <p className="section-sub">
-                            Your classes and clubs appear here on their own. Below them is everything students have
-                            started themselves.
+                            Your classes, clubs and the groups you belong to appear here. Below them is every group students have started.
                         </p>
                     </div>
                 </div>
