@@ -38,6 +38,15 @@ class UserSearchController extends Controller
                         ->whereColumn('user_blocks.blocker_id', 'users.id')
                         ->where('user_blocks.blocked_id', $viewer->id))));
 
+        // A student is only offered faculty, officials and admins they are
+        // connected with - the same rule Mentions::sync() enforces on save.
+        if ($viewer->role === 'student') {
+            $connected = \App\Support\GroupInvites::connectedIds($viewer);
+            $query->where(fn ($q) => $q
+                ->where('role', 'student')
+                ->orWhereIn('id', $connected ?: [0]));
+        }
+
         if ($term !== '') {
             // Matched against the display name and the three sources User::handle() falls back through.
             $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
