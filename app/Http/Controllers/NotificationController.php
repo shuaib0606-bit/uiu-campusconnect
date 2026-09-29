@@ -32,7 +32,7 @@ class NotificationController extends Controller
         ],
         'people' => [
             'label' => 'People',
-            'types' => [Notifier::FOLLOW, Notifier::FRIEND_REQUEST, Notifier::FRIEND_ACCEPT, 'connection', 'connection_request', 'message'],
+            'types' => [Notifier::FOLLOW, Notifier::FRIEND_REQUEST, Notifier::FRIEND_ACCEPT, 'connection', 'connection_request', 'message', Notifier::GROUP_INVITE, Notifier::GROUP_INVITE_ACCEPTED],
             'entities' => null,
         ],
         'campus' => [
@@ -161,6 +161,12 @@ class NotificationController extends Controller
             'message' => ($actor = $notification->actor_id ? User::find($notification->actor_id) : null)
                 ? redirect()->route('messages.index', ['with' => $actor->public_id])
                 : redirect()->route('messages.index'),
+            // An invitation is answered on the Applications page, which
+            // opens scrolled to it.
+            'group_invite' => redirect()->to(route('connect-requests.index').'#invite-'.$notification->entity_id),
+            'group' => ($group = $notification->entity_id ? \App\Models\CommunityGroup::find($notification->entity_id) : null)
+                ? redirect()->route('groups.show', $group)
+                : redirect()->route('groups.index'),
             'user', 'friendship', 'connection' => ($actor = $notification->actor_id ? User::find($notification->actor_id) : null)
                 ? redirect()->route('profile.show', $actor)
                 : redirect()->route('network.index'),

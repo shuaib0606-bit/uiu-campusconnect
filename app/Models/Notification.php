@@ -58,6 +58,8 @@ class Notification extends Model
             Notifier::NOTICE => 'megaphone',
             Notifier::EVENT => 'calendar',
             Notifier::SYSTEM => 'shield',
+            Notifier::GROUP_INVITE, Notifier::GROUP_INVITE_ACCEPTED => 'user-plus',
+            Notifier::GROUP_POST_PENDING, Notifier::GROUP_POST_REVIEWED => 'users',
             default => $this->iconForEntity(),
         };
     }

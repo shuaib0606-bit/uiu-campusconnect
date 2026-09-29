@@ -43,6 +43,18 @@ class Notifier
 
     public const SYSTEM = 'system';
 
+    /** Somebody was invited to a group. Opens their Applications page. */
+    public const GROUP_INVITE = 'group_invite';
+
+    /** An invitee accepted. Tells the person who invited them. */
+    public const GROUP_INVITE_ACCEPTED = 'group_invite_accepted';
+
+    /** A member's post is waiting for the group owner's approval. */
+    public const GROUP_POST_PENDING = 'group_post_pending';
+
+    /** The owner approved or turned down a waiting post. Tells its author. */
+    public const GROUP_POST_REVIEWED = 'group_post_reviewed';
+
     /** Types where repeat activity on the same entity collapses onto one unread row. */
     protected const COLLAPSIBLE = [
         self::POST_REACTION,
