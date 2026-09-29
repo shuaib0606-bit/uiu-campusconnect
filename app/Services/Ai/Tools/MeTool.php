@@ -103,9 +103,7 @@ class MeTool extends Tool
                 'teacher' => Links::person($section?->teacher()),
                 'schedule' => $section?->scheduleLine(),
                 'room' => $section?->room,
-                'chat' => $group->posting_mode === CommunityGroup::POSTING_EVERYONE
-                    ? 'open to students'
-                    : 'closed - only staff can post',
+                'chat' => $group->canChat($this->viewer) ? 'open to you' : 'not open to you',
                 'your_role' => $staff ? 'staff' : 'student',
                 'unread_notices' => $this->unreadNotices($group->id),
                 'assignments_to_hand_in' => $staff ? null : $this->pendingAssignments($group->id),

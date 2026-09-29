@@ -74,9 +74,10 @@ class GroupTool extends Tool
             'room' => $section?->room,
             'trimester' => $section?->trimester?->name,
             'members' => $group->members()->count(),
-            'chat' => $group->posting_mode === CommunityGroup::POSTING_EVERYONE
-                ? 'open to students'
-                : 'closed - only staff can post',
+            'chat' => $group->canChat($this->viewer)
+                ? 'open to you'
+                : 'not open to you - the group\'s posting rule keeps it to '.strtolower(CommunityGroup::POSTING_MODES[$group->postingMode()]['public']),
+            'posting' => CommunityGroup::POSTING_MODES[$group->postingMode()]['public'],
             'your_role' => $group->roleOf($this->viewer),
             'archived' => $group->archived_at ? 'read-only since '.$group->archived_at->toFormattedDateString() : null,
             'materials' => CommunityGroupFile::where('group_id', $group->id)->where('kind', CommunityGroupFile::MATERIAL)->count(),
@@ -219,10 +220,10 @@ class GroupTool extends Tool
      */
     private function chat(CommunityGroup $group): array
     {
-        $open = $group->posting_mode === CommunityGroup::POSTING_EVERYONE;
+        $open = $group->canChat($this->viewer);
 
-        if (! $open && ! $group->isStaff($this->viewer)) {
-            return ['chat' => 'closed', 'note' => 'The teacher has not opened this class to student conversation, so its chat is not available to students.'];
+        if (! $open) {
+            return ['chat' => 'closed', 'note' => 'This group\'s posting rule does not open the chat to you, so it is not available.'];
         }
 
         $lines = GroupMessage::where('group_id', $group->id)
@@ -239,7 +240,7 @@ class GroupTool extends Tool
             ->reverse();
 
         return [
-            'chat' => $open ? 'open to students' : 'closed to students (you are staff)',
+            'chat' => $group->isStaff($this->viewer) ? 'you run this group' : 'open to you',
             'chat_link' => Links::chat($group),
             'recent' => $lines->map(fn (GroupMessage $m) => [
                 'from' => (int) $m->user_id === (int) $this->viewer->id ? 'you' : $m->author?->full_name,
@@ -252,8 +253,8 @@ class GroupTool extends Tool
     /** The group wall, through the feed's own viewer filter. */
     private function wall(CommunityGroup $group): array
     {
-        return ['posts' => Post::where('posts.group_id', $group->id)
-            ->where('posts.is_deleted', false)
+        // Posts waiting for approval, or turned down, are not part of the wall.
+        return ['posts' => Post::publishedInGroup($group->id)
             ->forViewer($this->viewer)
             ->with('user:id,full_name')
             ->latest()

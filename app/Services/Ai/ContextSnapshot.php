@@ -106,7 +106,7 @@ class ContextSnapshot
         foreach ($groups as $group) {
             $section = $group->courseSection();
             $staff = $group->isStaff($user);
-            $chatOpen = $group->posting_mode === CommunityGroup::POSTING_EVERYONE;
+            $chatOpen = $group->canChat($user);
             $teacher = $staff ? null : $section?->teacher();
 
             $parts = array_filter([
