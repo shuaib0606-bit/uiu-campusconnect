@@ -14,7 +14,7 @@
                     @if ($club->logo_path)
                         <img src="{{ Storage::url($club->logo_path) }}" alt="{{ $club->name }} logo" class="h-20 w-20 rounded-2xl border-4 border-white object-cover shadow-lg dark:border-ink-900 sm:h-24 sm:w-24">
                     @else
-                        <span class="grid h-20 w-20 place-items-center rounded-2xl border-4 border-white bg-primary-500/10 text-primary-600 shadow-lg backdrop-blur dark:border-ink-900 dark:text-primary-300 sm:h-24 sm:w-24"><x-ui-icon name="award" class="h-9 w-9" /></span>
+                        <span class="grid h-20 w-20 place-items-center rounded-2xl border-4 border-white bg-primary-500/10 text-primary-600 shadow-lg backdrop-blur dark:border-ink-900 dark:text-primary-300 sm:h-24 sm:w-24"><x-ui-icon name="pennant" class="h-9 w-9" /></span>
                     @endif
 
                     {{-- The picker sits on the logo itself rather than in a
