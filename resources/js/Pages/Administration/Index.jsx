@@ -225,7 +225,7 @@ export default function Administration({ trimesters, trimester, sections, totals
 
                 {!trimester && (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="calendar" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="calendar-days" className="h-6 w-6" /></span>
                         <h3>No trimester defined yet</h3>
                         <p>
                             Create one on the command line first:
@@ -276,7 +276,7 @@ export default function Administration({ trimesters, trimester, sections, totals
                         <div className="space-y-3">
                             {sections.length === 0 ? (
                                 <div className="empty-state">
-                                    <span className="empty-icon"><Icon name="briefcase" className="h-6 w-6" /></span>
+                                    <span className="empty-icon"><Icon name="institution" className="h-6 w-6" /></span>
                                     <h3>No sections in this trimester</h3>
                                     <p>Import a class list, or add one above.</p>
                                 </div>
