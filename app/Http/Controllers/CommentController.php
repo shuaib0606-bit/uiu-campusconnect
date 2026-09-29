@@ -17,6 +17,11 @@ class CommentController extends Controller
 {
     public function store(Request $request, Post $post)
     {
+        // Only people who can see a post can react to or comment on it: a
+        // group post is for its members, and a post waiting for approval is
+        // for its author and the people running the group.
+        abort_unless($post->isOpenTo($request->user()), 404);
+
         $data = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
             'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
@@ -132,6 +137,8 @@ class CommentController extends Controller
     /** Applies, switches, or clears a reaction on a comment. Choosing the current reaction clears it. */
     public function react(Request $request, Comment $comment)
     {
+        abort_unless($comment->post && $comment->post->isOpenTo($request->user()), 404);
+
         $data = $request->validate([
             'reaction' => ['nullable', Rule::in(array_keys(ReactionController::REACTIONS))],
         ]);

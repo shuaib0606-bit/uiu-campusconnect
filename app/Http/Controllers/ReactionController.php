@@ -20,6 +20,11 @@ class ReactionController extends Controller
 
     public function store(Request $request, Post $post)
     {
+        // Only people who can see a post can react to or comment on it: a
+        // group post is for its members, and a post waiting for approval is
+        // for its author and the people running the group.
+        abort_unless($post->isOpenTo($request->user()), 404);
+
         $data = $request->validate([
             'reaction' => ['required', Rule::in(array_keys(self::REACTIONS))],
         ]);

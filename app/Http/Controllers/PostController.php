@@ -64,6 +64,21 @@ class PostController extends Controller
             'group_id' => ['nullable', 'integer', 'exists:community_groups,id'],
         ]);
 
+        // A group post belongs to that group's wall and nowhere else. If the
+        // group is missing, or this person may not post in it under the
+        // group's posting rule, the post is refused - it must never fall
+        // through and appear on the main feed instead.
+        $group = null;
+        if (! empty($data['group_id'])) {
+            $group = \App\Models\CommunityGroup::find($data['group_id']);
+
+            abort_unless(
+                $group && $group->canPost($request->user()),
+                403,
+                'You cannot post in this group.'
+            );
+        }
+
         $uploads = $this->collectUploads($request);
 
         // The media_type and media_path columns mirror the first attachment.
@@ -78,23 +93,22 @@ class PostController extends Controller
             }
         }
 
-        // A group post belongs to that group's wall and nowhere else, so it is
-        // never also club-scoped, and its audience is the membership rather
-        // than one of the three feed audiences.
-        $groupId = null;
-        if (! empty($data['group_id'])) {
-            $group = \App\Models\CommunityGroup::find($data['group_id']);
-
-            if ($group && $group->members()->where('users.id', $request->user()->id)->exists()) {
-                $groupId = $group->id;
-                $clubId = null;
-            }
+        // A group post is never also club-scoped, and its audience is the
+        // membership rather than one of the three feed audiences.
+        $groupId = $group?->id;
+        if ($groupId) {
+            $clubId = null;
         }
+
+        // Under "everyone, with approval" a member's post waits for the
+        // people running the group before anybody else can see it.
+        $awaiting = $group !== null && $group->needsApproval($request->user());
 
         $post = Post::create([
             'user_id' => $request->user()->id,
             'club_id' => $clubId,
             'group_id' => $groupId,
+            'approval_status' => $awaiting ? Post::APPROVAL_PENDING : null,
             'body' => $data['body'],
             'visibility' => $groupId ? 'uiu' : ($data['visibility'] ?? 'uiu'),
             'media_type' => $mediaType,
@@ -121,7 +135,19 @@ class PostController extends Controller
             PollOption::create(['post_id' => $post->id, 'label' => $label, 'position' => $i]);
         }
 
-        $this->syncMentions($post, $request->user(), 'mentioned you in a post.');
+        if ($awaiting) {
+            // Mentions are sent when the post is approved, not before.
+            \App\Support\Notifier::sendMany(
+                $group->members()->get()->filter(fn ($m) => $group->isStaff($m)),
+                $request->user(),
+                Notifier::GROUP_POST_PENDING,
+                'group',
+                $group->id,
+                'posted in '.$group->name.' and is waiting for your approval.'
+            );
+        } else {
+            $this->syncMentions($post, $request->user(), 'mentioned you in a post.');
+        }
 
         // Best-effort and quiet: a slow or unreachable site means no card,
         // never a failed post. Code posts are skipped, because a URL inside
@@ -130,7 +156,9 @@ class PostController extends Controller
             LinkPreview::attach($post);
         }
 
-        return back()->with('success', 'Post published.');
+        return back()->with('success', $awaiting
+            ? 'Posted. It will appear in the group once the owner approves it.'
+            : 'Post published.');
     }
 
     /**
@@ -238,9 +266,9 @@ class PostController extends Controller
         if (! $allowed) {
             $post = Post::find($media->post_id);
 
-            $allowed = $post
-                && $post->group
-                && $post->group->members()->where('users.id', $request->user()->id)->exists();
+            // isOpenTo also keeps a post waiting for approval closed to
+            // everyone but its author and the people running the group.
+            $allowed = $post && $post->group_id && $post->isOpenTo($request->user());
         }
 
         abort_unless($allowed, 403, 'You cannot open this attachment.');
@@ -323,6 +351,8 @@ class PostController extends Controller
 
     public function toggleSave(Request $request, Post $post)
     {
+        abort_unless($post->isOpenTo($request->user()), 404);
+
         $userId = $request->user()->id;
         $query = PostSave::where('post_id', $post->id)->where('user_id', $userId);
         $active = true;
@@ -346,6 +376,11 @@ class PostController extends Controller
 
     public function share(Request $request, Post $post)
     {
+        abort_unless($post->isOpenTo($request->user()), 404);
+
+        // Sharing is a feed action; a group post stays inside its group.
+        abort_if($post->group_id !== null, 403, 'Posts in a group cannot be shared outside it.');
+
         PostShare::create(['post_id' => $post->id, 'user_id' => $request->user()->id, 'created_at' => now()]);
 
         return $this->respond($request, ['active' => true], 'Shared to your profile.');
@@ -353,6 +388,8 @@ class PostController extends Controller
 
     public function report(Request $request, Post $post)
     {
+        abort_unless($post->isOpenTo($request->user()), 404);
+
         $data = $request->validate(['reason' => ['required', 'string', 'max:255']]);
 
         Report::updateOrCreate([
@@ -366,6 +403,8 @@ class PostController extends Controller
 
     public function vote(Request $request, Post $post)
     {
+        abort_unless($post->isOpenTo($request->user()), 404);
+
         $data = $request->validate(['option_id' => ['required', 'integer']]);
         $option = PollOption::where('post_id', $post->id)->findOrFail($data['option_id']);
 

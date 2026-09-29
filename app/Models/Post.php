@@ -63,8 +63,14 @@ class Post extends Model
     protected $fillable = [
         'user_id', 'club_id', 'group_id', 'body', 'post_type', 'code_language',
         'media_type', 'media_path', 'media_thumb_path',
-        'visibility', 'is_deleted', 'deleted_reason',
+        'visibility', 'is_deleted', 'deleted_reason', 'approval_status',
     ];
+
+    /** A group post waiting for the group owner's approval. */
+    public const APPROVAL_PENDING = 'pending';
+
+    /** A group post the owner turned down. Only its author can still see it. */
+    public const APPROVAL_REJECTED = 'rejected';
 
     protected $with = ['media', 'link'];
 
@@ -199,6 +205,53 @@ class Post extends Model
     public function scopeVisible($query)
     {
         return $query->where('is_deleted', false)->whereNull('posts.group_id');
+    }
+
+    /**
+     * Group-wall posts everyone in the group may see: not deleted, and not
+     * waiting for approval or turned down. The wall adds the viewer's own
+     * waiting posts, and the owner's approval queue, separately.
+     */
+    public function scopePublishedInGroup($query, int $groupId)
+    {
+        return $query->where('posts.group_id', $groupId)
+            ->where('posts.is_deleted', false)
+            ->whereNull('posts.approval_status');
+    }
+
+    public function isAwaitingApproval(): bool
+    {
+        return $this->approval_status === self::APPROVAL_PENDING;
+    }
+
+    /**
+     * Whether this person may see this post at all - and so react to it,
+     * comment on it, vote in its poll or save it. Feed posts keep their
+     * existing rules; this is about group posts, which only members may
+     * touch, and which nobody but the author and the people running the
+     * group may touch while they wait for approval.
+     */
+    public function isOpenTo(?User $user): bool
+    {
+        if (! $user || $this->is_deleted) {
+            return false;
+        }
+
+        if (! $this->group_id) {
+            return true;
+        }
+
+        $group = $this->group;
+
+        if (! $group || ! $group->hasMember($user)) {
+            return false;
+        }
+
+        if ($this->approval_status === null) {
+            return true;
+        }
+
+        return (int) $this->user_id === (int) $user->id || $group->isStaff($user);
     }
 
     /**

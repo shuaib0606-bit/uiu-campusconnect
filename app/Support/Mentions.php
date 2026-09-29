@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Mention;
 use App\Models\User;
+use App\Services\SocialRules;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,14 @@ class Mentions
         if ($excludeUserId) {
             // Self-mentions are not stored or notified.
             $users = $users->reject(fn (User $u) => (int) $u->id === (int) $excludeUserId)->values();
+
+            // The author may only mention people the social rules allow: a
+            // student cannot tag a faculty member they are not connected
+            // with. Such a handle stays as plain text - no link, no alert.
+            $author = User::find($excludeUserId);
+            if ($author) {
+                $users = $users->filter(fn (User $u) => SocialRules::canMention($author, $u))->values();
+            }
         }
 
         $type = $mentionable->getMorphClass();

@@ -94,10 +94,13 @@
                     <span x-text="saved ? 'Saved post' : 'Save post'"></span>
                 </button>
 
-                <form action="{{ route('posts.share', $post) }}" method="POST">
-                    @csrf
-                    <button class="post-menu-item"><x-ui-icon name="share" class="h-4 w-4 shrink-0" />Share post</button>
-                </form>
+                {{-- A group post stays inside its group, so it has no Share. --}}
+                @unless ($post->group_id)
+                    <form action="{{ route('posts.share', $post) }}" method="POST">
+                        @csrf
+                        <button class="post-menu-item"><x-ui-icon name="share" class="h-4 w-4 shrink-0" />Share post</button>
+                    </form>
+                @endunless
 
                 @if (! $isOwnPost)
                     <button type="button" @click="hidePost(); menu = false" class="post-menu-item">
