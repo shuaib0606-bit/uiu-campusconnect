@@ -17,7 +17,7 @@
 
 <a href="{{ route('deadlines.index') }}" class="rail-card group block transition hover:border-primary-300 dark:hover:border-primary-700" aria-label="Open all deadlines">
     <div class="mb-3 flex items-center justify-between gap-2">
-        <h3 class="inline-flex items-center gap-1.5"><x-ui-icon name="clock" class="h-4 w-4 text-primary-500" />Deadlines</h3>
+        <h3 class="inline-flex items-center gap-1.5"><x-ui-icon name="hourglass" class="h-4 w-4 text-primary-500" />Deadlines</h3>
         @if ($week)
             <span class="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:text-red-300">{{ $week }} this week</span>
         @endif

@@ -5,8 +5,8 @@
 @php
     $isCal = $item['kind'] === 'calendar';
     $look = match ($item['kind']) {
-        'assignment' => ['icon' => 'paperclip', 'chip' => 'bg-primary-500/10 text-primary-600 dark:text-primary-300'],
-        'event' => ['icon' => 'calendar', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300'],
+        'assignment' => ['icon' => 'clipboard', 'chip' => 'bg-primary-500/10 text-primary-600 dark:text-primary-300'],
+        'event' => ['icon' => 'ticket', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300'],
         default => \App\Support\AcademicCalendar::type($item['type']),
     };
     $days = \App\Support\Deadlines::daysLeft($item);
@@ -33,7 +33,7 @@
             <span class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400"><x-ui-icon name="alert-triangle" class="h-3 w-3" />Not submitted - late work still accepted</span>
         @elseif ($item['handed_in'] !== null)
             <span class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold {{ $item['class_size'] && $item['handed_in'] >= $item['class_size'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-ink-500 dark:text-ink-400' }}">
-                <x-ui-icon name="inbox" class="h-3 w-3" />{{ $item['handed_in'] }}{{ $item['class_size'] ? ' of '.$item['class_size'] : '' }} handed in{{ $item['state'] === 'closed' ? ' · closed' : '' }}
+                <x-ui-icon name="clipboard" class="h-3 w-3" />{{ $item['handed_in'] }}{{ $item['class_size'] ? ' of '.$item['class_size'] : '' }} handed in{{ $item['state'] === 'closed' ? ' · closed' : '' }}
             </span>
         @endif
 
