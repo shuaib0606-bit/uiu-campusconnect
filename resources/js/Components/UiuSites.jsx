@@ -89,7 +89,7 @@ export default function UiuSites({ sites = [] }) {
 
                                         {site.hint && (
                                             <span className="mt-4 flex items-start gap-1.5 rounded-xl bg-ink-900/[0.04] px-3 py-2 text-xs text-ink-600 dark:bg-white/[0.05] dark:text-ink-300">
-                                                <Icon name="calendar" className="mt-px h-3.5 w-3.5 shrink-0" />
+                                                <Icon name="calendar-days" className="mt-px h-3.5 w-3.5 shrink-0" />
                                                 <span>{site.hint}</span>
                                             </span>
                                         )}

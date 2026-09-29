@@ -25,7 +25,7 @@
                 <span class="relative">
                     <x-user-avatar :user="auth()->user()" size="h-20 w-20" text="text-2xl" />
                     <span class="absolute -left-1 -top-1 grid h-6 w-6 place-items-center rounded-lg bg-primary-500 text-white ring-[3px] ring-[var(--surface-page)]">
-                        <x-ui-icon name="home" class="h-3.5 w-3.5" />
+                        <x-ui-icon name="user" class="h-3.5 w-3.5" />
                     </span>
                 </span>
                 <span class="min-w-0">
@@ -46,9 +46,9 @@
                 @auth
                     {{-- The React layout carries this link too. Both sidebars
                          have to list it, or it appears on half the site. --}}
-                    <a href="{{ route('assistant.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'assistant') ? 'is-active' : '' }}"><x-ui-icon name="lightbulb" class="h-5 w-5" />Assistant</a>
+                    <a href="{{ route('assistant.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'assistant') ? 'is-active' : '' }}"><x-ui-icon name="sparkles" class="h-5 w-5" />Assistant</a>
                 @endauth
-                <a href="{{ route('network.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'network') ? 'is-active' : '' }}"><x-ui-icon name="users" class="h-5 w-5" />Network</a>
+                <a href="{{ route('network.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'network') ? 'is-active' : '' }}"><x-ui-icon name="network" class="h-5 w-5" />Network</a>
                 @auth
                     <a href="{{ route('connect-requests.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'connect-requests') ? 'is-active' : '' }}">
                         <x-ui-icon name="handshake" class="h-5 w-5" />Applications
@@ -60,16 +60,16 @@
                     @if(($unreadMessages ?? 0) > 0)<span class="ml-auto rounded-full bg-primary-500 text-white text-[11px] font-semibold px-2 py-0.5">{{ $unreadMessages }}</span>@endif
                 </a>
                 <a href="{{ route('clubs.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'clubs') ? 'is-active' : '' }}"><x-ui-icon name="award" class="h-5 w-5" />Clubs</a>
-                <a href="{{ route('events.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'events') ? 'is-active' : '' }}"><x-ui-icon name="calendar" class="h-5 w-5" />Events</a>
+                <a href="{{ route('events.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'events') ? 'is-active' : '' }}"><x-ui-icon name="ticket" class="h-5 w-5" />Events</a>
                 <a href="{{ route('calendar.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'calendar') ? 'is-active' : '' }}"><x-ui-icon name="calendar" class="h-5 w-5" />Academic calendar</a>
                 <a href="{{ route('groups.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'groups') ? 'is-active' : '' }}">
                     <x-ui-icon name="users" class="h-5 w-5" />Groups
                     {{-- Unopened course and club announcements. --}}
                     @if(($unreadGroupNotices ?? 0) > 0)<span class="ml-auto rounded-full bg-primary-500 text-white text-[11px] font-semibold px-2 py-0.5">{{ $unreadGroupNotices }}</span>@endif
                 </a>
-                <a href="{{ route('notices.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'notices') ? 'is-active' : '' }}"><x-ui-icon name="flag" class="h-5 w-5" />Notices</a>
+                <a href="{{ route('notices.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'notices') ? 'is-active' : '' }}"><x-ui-icon name="megaphone" class="h-5 w-5" />Notices</a>
                 <a href="{{ route('marketplace.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'marketplace') ? 'is-active' : '' }}"><x-ui-icon name="shopping-bag" class="h-5 w-5" />Marketplace</a>
-                <a href="{{ route('lost-found.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'lost-found') ? 'is-active' : '' }}"><x-ui-icon name="inbox" class="h-5 w-5" />Lost & Found</a>
+                <a href="{{ route('lost-found.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'lost-found') ? 'is-active' : '' }}"><x-ui-icon name="box" class="h-5 w-5" />Lost & Found</a>
 
                 {{-- The university's own systems, each explained, in one dialog. --}}
                 @auth
@@ -78,13 +78,13 @@
 
                 @auth
                     @if(auth()->user()->canIssueSectionAnnouncements())
-                        <a href="{{ route('administration.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'administration') ? 'is-active' : '' }}"><x-ui-icon name="building" class="h-5 w-5" />Administration</a>
+                        <a href="{{ route('administration.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'administration') ? 'is-active' : '' }}"><x-ui-icon name="briefcase" class="h-5 w-5" />Administration</a>
                     @endif
                     @if(auth()->user()->isAdmin())
-                        <a href="{{ route('admin-center.index') }}" class="nav-link {{ $r === 'admin-center.index' ? 'is-active' : '' }}"><x-ui-icon name="shield" class="h-5 w-5" />Admin Center</a>
-                        <a href="{{ route('user-approvals.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'user-approvals') ? 'is-active' : '' }}"><x-ui-icon name="user-plus" class="h-5 w-5" />User Approvals</a>
-                        <a href="{{ route('moderation.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'moderation') ? 'is-active' : '' }}"><x-ui-icon name="flag" class="h-5 w-5" />Moderation</a>
-                        <a href="{{ url('/admin') }}" class="nav-link"><x-ui-icon name="settings" class="h-5 w-5" />Filament Admin</a>
+                        <a href="{{ route('admin-center.index') }}" class="nav-link {{ $r === 'admin-center.index' ? 'is-active' : '' }}"><x-ui-icon name="grid" class="h-5 w-5" />Admin Center</a>
+                        <a href="{{ route('user-approvals.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'user-approvals') ? 'is-active' : '' }}"><x-ui-icon name="user-check" class="h-5 w-5" />User Approvals</a>
+                        <a href="{{ route('moderation.index') }}" class="nav-link {{ str_starts_with($r ?? '', 'moderation') ? 'is-active' : '' }}"><x-ui-icon name="shield" class="h-5 w-5" />Moderation</a>
+                        <a href="{{ url('/admin') }}" class="nav-link"><x-ui-icon name="database" class="h-5 w-5" />Filament Admin</a>
                     @endif
                 @endauth
             </nav>
@@ -154,12 +154,12 @@
             <nav class="lg:hidden sticky bottom-0 z-30 flex items-center justify-around border-t border-ink-100 dark:border-ink-800/70 bg-[var(--surface-page)]/95 backdrop-blur-xl px-2 py-2">
                 <a href="{{ route('feed.index') }}" class="btn-icon"><x-ui-icon name="home" class="h-5 w-5" /></a>
                 @auth
-                    <a href="{{ route('assistant.index') }}" class="btn-icon"><x-ui-icon name="lightbulb" class="h-5 w-5" /></a>
+                    <a href="{{ route('assistant.index') }}" class="btn-icon"><x-ui-icon name="sparkles" class="h-5 w-5" /></a>
                 @endauth
-                <a href="{{ route('network.index') }}" class="btn-icon"><x-ui-icon name="users" class="h-5 w-5" /></a>
+                <a href="{{ route('network.index') }}" class="btn-icon"><x-ui-icon name="network" class="h-5 w-5" /></a>
                 <a href="{{ route('messages.index') }}" class="btn-icon"><x-ui-icon name="message" class="h-5 w-5" /></a>
-                <a href="{{ route('events.index') }}" class="btn-icon"><x-ui-icon name="calendar" class="h-5 w-5" /></a>
-                <a href="{{ route('profile.me') }}" class="btn-icon"><x-ui-icon name="users" class="h-5 w-5" /></a>
+                <a href="{{ route('events.index') }}" class="btn-icon"><x-ui-icon name="ticket" class="h-5 w-5" /></a>
+                <a href="{{ route('profile.me') }}" class="btn-icon"><x-ui-icon name="user" class="h-5 w-5" /></a>
             </nav>
         </div>
     </div>

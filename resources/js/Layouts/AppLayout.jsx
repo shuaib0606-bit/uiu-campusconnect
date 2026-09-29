@@ -78,23 +78,23 @@ export default function AppLayout({ title, children }) {
 
     const main = [
         ['/feed', 'home', 'Feed'],
-        ['/assistant', 'lightbulb', 'Assistant'],
-        ['/network', 'users', 'Network'],
+        ['/assistant', 'sparkles', 'Assistant'],
+        ['/network', 'network', 'Network'],
         ['/connect-requests', 'handshake', 'Applications', badges.applications],
         ['/messages', 'message', 'Messages', badges.messages],
         ['/clubs', 'award', 'Clubs'],
-        ['/events', 'calendar', 'Events'],
+        ['/events', 'ticket', 'Events'],
         ['/calendar', 'calendar', 'Academic calendar'],
         ['/groups', 'users', 'Groups', badges.groups],
-        ['/notices', 'flag', 'Notices'],
+        ['/notices', 'megaphone', 'Notices'],
         ['/marketplace', 'shopping-bag', 'Marketplace'],
-        ['/lost-found', 'inbox', 'Lost & Found'],
+        ['/lost-found', 'box', 'Lost & Found'],
     ];
 
     const adminLinks = [
-        ['/developer-admin', 'shield', 'Admin Center'],
-        ['/user-approvals', 'user-plus', 'User Approvals'],
-        ['/moderation', 'flag', 'Moderation'],
+        ['/developer-admin', 'grid', 'Admin Center'],
+        ['/user-approvals', 'user-check', 'User Approvals'],
+        ['/moderation', 'shield', 'Moderation'],
     ];
 
     const notice = flash.success
@@ -116,7 +116,7 @@ export default function AppLayout({ title, children }) {
                             <span className="relative">
                                 <UserAvatar user={user} size="h-20 w-20" text="text-2xl" />
                                 <span className="absolute -left-1 -top-1 grid h-6 w-6 place-items-center rounded-lg bg-primary-500 text-white ring-[3px] ring-[var(--surface-page)]">
-                                    <Icon name="home" className="h-3.5 w-3.5" />
+                                    <Icon name="user" className="h-3.5 w-3.5" />
                                 </span>
                             </span>
                             <span className="min-w-0">
@@ -149,7 +149,7 @@ export default function AppLayout({ title, children }) {
                         <UiuSites sites={uiuSites} />
 
                         {user?.can_issue_section_announcements && (
-                            <NavLink href="/administration" icon="building" label="Administration" active={starts('/administration')} />
+                            <NavLink href="/administration" icon="briefcase" label="Administration" active={starts('/administration')} />
                         )}
 
                         {user?.is_admin && (
@@ -158,7 +158,7 @@ export default function AppLayout({ title, children }) {
                                     <NavLink key={href} href={href} icon={icon} label={label} active={starts(href)} />
                                 ))}
                                 <a href="/admin" className="nav-link">
-                                    <Icon name="settings" className="h-5 w-5" />
+                                    <Icon name="database" className="h-5 w-5" />
                                     Filament Admin
                                 </a>
                             </>
@@ -240,9 +240,9 @@ export default function AppLayout({ title, children }) {
 
                     <nav className="sticky bottom-0 z-30 flex items-center justify-around border-t border-ink-100 bg-[var(--surface-page)]/95 px-2 py-2 backdrop-blur-xl dark:border-ink-800/70 lg:hidden">
                         <SmartLink href="/feed" className="btn-icon"><Icon name="home" className="h-5 w-5" /></SmartLink>
-                        <SmartLink href="/network" className="btn-icon"><Icon name="users" className="h-5 w-5" /></SmartLink>
+                        <SmartLink href="/network" className="btn-icon"><Icon name="network" className="h-5 w-5" /></SmartLink>
                         <SmartLink href="/messages" className="btn-icon"><Icon name="message" className="h-5 w-5" /></SmartLink>
-                        <SmartLink href="/events" className="btn-icon"><Icon name="calendar" className="h-5 w-5" /></SmartLink>
+                        <SmartLink href="/events" className="btn-icon"><Icon name="ticket" className="h-5 w-5" /></SmartLink>
                         <SmartLink href="/me" className="btn-icon"><Icon name="user" className="h-5 w-5" /></SmartLink>
                     </nav>
                 </div>
