@@ -19,7 +19,7 @@ class EventResource extends Resource
 {
     protected static ?string $model = Event::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-ticket';
+    protected static string|\BackedEnum|null $navigationIcon = 'campus-calendar-star';
 
     protected static ?string $navigationLabel = 'Events';
 

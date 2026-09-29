@@ -238,7 +238,7 @@ export default function EventsIndex({ events, filters, categories, clubs, canCre
 
                 {events.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="ticket" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="calendar-star" className="h-6 w-6" /></span>
                         <h3>No events found</h3>
                         <p>Try another category or check again later.</p>
                     </div>
