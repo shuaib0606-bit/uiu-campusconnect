@@ -115,7 +115,7 @@
                     @foreach ($related as $other)
                         <a href="{{ route('notices.show', $other) }}" class="surface-flat surface-hover flex items-center gap-3 rounded-xl p-3.5">
                             <span class="card-icon grid h-9 w-9 shrink-0 place-items-center rounded-lg {{ $other->isImportant() ? 'bg-red-500/10 text-red-600 dark:text-red-300' : 'bg-primary-500/10 text-primary-600 dark:text-primary-300' }}">
-                                <x-ui-icon :name="$other->isImportant() ? 'alert-triangle' : 'file-text'" class="h-4 w-4" />
+                                <x-ui-icon :name="$other->isImportant() ? 'alert-triangle' : 'megaphone'" class="h-4 w-4" />
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium">{{ $other->title }}</p>

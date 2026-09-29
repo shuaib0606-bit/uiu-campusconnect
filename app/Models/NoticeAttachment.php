@@ -37,7 +37,7 @@ class NoticeAttachment extends Model
     {
         return match ($this->extension()) {
             'jpg', 'jpeg', 'png', 'gif', 'webp' => 'image',
-            'xls', 'xlsx', 'csv' => 'sliders',
+            'xls', 'xlsx', 'csv' => 'table',
             default => 'file-text',
         };
     }

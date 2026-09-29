@@ -148,7 +148,7 @@ function NoticeRow({ notice, delay }) {
                         ? 'bg-red-500/10 text-red-600 dark:text-red-300'
                         : 'bg-primary-500/10 text-primary-600 dark:text-primary-300'
                 }`}>
-                    <Icon name={notice.is_important ? 'alert-triangle' : 'file-text'} className="h-5 w-5" />
+                    <Icon name={notice.is_important ? 'alert-triangle' : 'megaphone'} className="h-5 w-5" />
                 </span>
 
                 <div className="min-w-0 flex-1">
@@ -243,7 +243,7 @@ export default function NoticesIndex({ notices, featured, stats, types, filters,
                                     filtersOpen ? '!bg-primary-500/10 !text-primary-700 dark:!text-primary-300' : ''
                                 }`}
                             >
-                                <Icon name="sliders" className={`h-4 w-4 transition-transform duration-500 ease-out ${filtersOpen ? 'rotate-180' : ''}`} />
+                                <Icon name="filter" className={`h-4 w-4 transition-transform duration-500 ease-out ${filtersOpen ? 'rotate-180' : ''}`} />
                                 <span>Filters</span>
                                 {activeFilterCount > 0 && (
                                     <span className="rounded-full bg-primary-500 px-1.5 text-xs text-white">{activeFilterCount}</span>
@@ -379,7 +379,7 @@ export default function NoticesIndex({ notices, featured, stats, types, filters,
 
                 {notices.data.length === 0 && !featured ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="flag" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="megaphone" className="h-6 w-6" /></span>
                         <h3>No notices found</h3>
                         <p>Try clearing your filters or searching with a different keyword.</p>
                     </div>
