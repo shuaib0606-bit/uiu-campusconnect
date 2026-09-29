@@ -8,7 +8,7 @@
                     <p class="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Campus Messenger</p>
                     <h1 class="text-[18px] font-semibold tracking-tight">Messages</h1>
                 </div>
-                <a href="{{ route('network.index') }}" class="btn-icon" title="Find people"><x-ui-icon name="users" class="h-4.5 w-4.5" /></a>
+                <a href="{{ route('network.index') }}" class="btn-icon" title="Find people"><x-ui-icon name="network" class="h-4.5 w-4.5" /></a>
             </div>
 
             <div class="relative mb-3">
