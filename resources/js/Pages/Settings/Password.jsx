@@ -84,7 +84,7 @@ export default function SettingsPassword({ forced, security, profileUrl }) {
                             ))}
 
                             <button type="submit" className="btn-primary w-full" disabled={form.processing}>
-                                <Icon name="shield" className="h-4 w-4" />
+                                <Icon name="check" className="h-4 w-4" />
                                 {form.processing ? 'Updating…' : 'Update password'}
                             </button>
                         </form>
