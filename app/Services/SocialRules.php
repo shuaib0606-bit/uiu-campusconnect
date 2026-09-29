@@ -62,6 +62,29 @@ class SocialRules
         return [false, 'This role combination does not allow friend requests.'];
     }
 
+    /**
+     * Whether $author may @mention $target. A student may mention any other
+     * student, but a faculty member, official or admin only when the two are
+     * connected (an approved connection application creates that link).
+     * Nobody is mentioned across a block.
+     */
+    public static function canMention(User $author, User $target): bool
+    {
+        if ((int) $author->id === (int) $target->id) {
+            return false;
+        }
+
+        if (static::isBlocked($author, $target)) {
+            return false;
+        }
+
+        if ($author->role === 'student' && $target->role !== 'student') {
+            return static::areConnected($author, $target);
+        }
+
+        return true;
+    }
+
     public static function isBlocked(User $a, User $b): bool
     {
         return UserBlock::query()

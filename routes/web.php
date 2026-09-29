@@ -10,6 +10,7 @@ use App\Http\Controllers\ConnectionRequestController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupInviteController;
 use App\Http\Controllers\LostFoundController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaController;
@@ -184,6 +185,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{group}/notices', [GroupController::class, 'publishNotice'])->name('groups.notices.store');
     Route::delete('/groups/{group}/notices/{notice}', [GroupController::class, 'deleteNotice'])->name('groups.notices.delete');
     Route::post('/groups/{group}/posting-mode', [GroupController::class, 'togglePosting'])->name('groups.posting-mode');
+    Route::post('/groups/{group}/members/{user}/can-post', [GroupController::class, 'toggleMemberPosting'])->name('groups.members.can-post');
+    Route::post('/groups/{group}/posts/{post}/approve', [GroupController::class, 'approvePost'])->name('groups.posts.approve');
+    Route::post('/groups/{group}/posts/{post}/reject', [GroupController::class, 'rejectPost'])->name('groups.posts.reject');
+
+    // Invitations: the creator sends them from the group page; the person
+    // invited answers on their Applications page.
+    Route::get('/groups/{group}/invite/search', [GroupInviteController::class, 'search'])->name('groups.invite.search');
+    Route::get('/groups/{group}/invite/courses', [GroupInviteController::class, 'courses'])->name('groups.invite.courses');
+    Route::get('/groups/{group}/invite/courses/{section}', [GroupInviteController::class, 'classmates'])->whereNumber('section')->name('groups.invite.classmates');
+    Route::post('/groups/{group}/invites', [GroupInviteController::class, 'store'])->name('groups.invites.store');
+    Route::delete('/groups/{group}/invites/{invite}', [GroupInviteController::class, 'cancel'])->name('groups.invites.cancel');
+    Route::post('/group-invites/{invite}/accept', [GroupInviteController::class, 'accept'])->name('group-invites.accept');
+    Route::post('/group-invites/{invite}/decline', [GroupInviteController::class, 'decline'])->name('group-invites.decline');
     Route::get('/groups/{group}/files/{file}', [GroupController::class, 'downloadFile'])->name('groups.files.download');
 
     // Assignments live inside a group, so every route carries the group

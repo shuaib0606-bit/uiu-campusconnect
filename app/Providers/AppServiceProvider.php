@@ -72,6 +72,11 @@ class AppServiceProvider extends ServiceProvider
                         ->orWhereIn('club_id', Club::where('moderator_id', $user->id)->pluck('id')))
                     ->count();
 
+                // Group invitations waiting for this person's answer.
+                $pendingApplications += \App\Models\GroupInvite::where('user_id', $user->id)
+                    ->where('status', \App\Models\GroupInvite::PENDING)
+                    ->count();
+
                 $view->with('pendingApplications', $pendingApplications);
 
                 // Course and club announcements this person has not opened.

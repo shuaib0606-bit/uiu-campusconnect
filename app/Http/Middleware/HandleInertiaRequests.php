@@ -73,6 +73,10 @@ class HandleInertiaRequests extends Middleware
                         ->where(fn ($q) => $q
                             ->where('proposed_by', $user->id)
                             ->orWhereIn('club_id', Club::where('moderator_id', $user->id)->pluck('id')))
+                        ->count()
+                    // Group invitations waiting for this person's answer.
+                    + \App\Models\GroupInvite::where('user_id', $user->id)
+                        ->where('status', \App\Models\GroupInvite::PENDING)
                         ->count(),
             ] : [],
 

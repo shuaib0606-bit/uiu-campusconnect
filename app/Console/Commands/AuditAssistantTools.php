@@ -316,7 +316,7 @@ class AuditAssistantTools extends Command
 
             $chat = $results["group.{$group->id}.chat"];
 
-            if (! $staff && $group->posting_mode !== CommunityGroup::POSTING_EVERYONE && isset($chat['recent'])) {
+            if (! $group->canChat($user) && isset($chat['recent'])) {
                 $this->record('chat_gate', $user, "group.{$group->id}.chat");
             }
 
