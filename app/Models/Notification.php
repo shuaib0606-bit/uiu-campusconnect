@@ -48,17 +48,18 @@ class Notification extends Model
     /** Icon for the notification row, keyed on the notification type. */
     public function iconName(): string
     {
+        // Each kind shows the icon of the feature it comes from, the same
+        // icon that feature has everywhere else in the app.
         return match ($this->type) {
-            Notifier::POST_REACTION, Notifier::COMMENT_REACTION => 'heart',
+            Notifier::POST_REACTION, Notifier::COMMENT_REACTION => 'thumb-up',
             Notifier::POST_COMMENT, Notifier::COMMENT_REPLY, Notifier::ALSO_COMMENTED => 'comment',
-            Notifier::MENTION => 'tag',
-            Notifier::FOLLOW => 'user-plus',
-            Notifier::FRIEND_REQUEST => 'user-plus',
-            Notifier::FRIEND_ACCEPT => 'handshake',
+            Notifier::MENTION => 'at',
+            Notifier::FOLLOW => 'star',
+            Notifier::FRIEND_REQUEST, Notifier::FRIEND_ACCEPT => 'user-plus',
             Notifier::NOTICE => 'megaphone',
-            Notifier::EVENT => 'calendar',
-            Notifier::SYSTEM => 'shield',
-            Notifier::GROUP_INVITE, Notifier::GROUP_INVITE_ACCEPTED => 'user-plus',
+            Notifier::EVENT => 'ticket',
+            Notifier::SYSTEM => 'bell',
+            Notifier::GROUP_INVITE, Notifier::GROUP_INVITE_ACCEPTED => 'envelope-open',
             Notifier::GROUP_POST_PENDING, Notifier::GROUP_POST_REVIEWED => 'users',
             default => $this->iconForEntity(),
         };
@@ -69,11 +70,15 @@ class Notification extends Model
     {
         return match ($this->entity_type) {
             'post', 'comment' => 'comment',
-            'event' => 'calendar',
+            'event' => 'ticket',
             'notice' => 'megaphone',
             'message' => 'message',
-            'club' => 'users',
-            'user', 'friendship', 'connection' => 'users',
+            'club' => 'award',
+            'group' => 'users',
+            'group_invite' => 'envelope-open',
+            'friendship' => 'user-plus',
+            'connection' => 'handshake',
+            'user' => 'user',
             default => 'bell',
         };
     }
