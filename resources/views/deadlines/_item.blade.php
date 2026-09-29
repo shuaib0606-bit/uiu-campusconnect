@@ -6,7 +6,7 @@
     $isCal = $item['kind'] === 'calendar';
     $look = match ($item['kind']) {
         'assignment' => ['icon' => 'clipboard', 'chip' => 'bg-primary-500/10 text-primary-600 dark:text-primary-300'],
-        'event' => ['icon' => 'ticket', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300'],
+        'event' => ['icon' => 'calendar-star', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300'],
         default => \App\Support\AcademicCalendar::type($item['type']),
     };
     $days = \App\Support\Deadlines::daysLeft($item);

@@ -81,7 +81,7 @@
 
         @if (! $calendar)
             <div class="empty-state">
-                <span class="empty-icon"><x-ui-icon name="calendar" class="h-6 w-6" /></span>
+                <span class="empty-icon"><x-ui-icon name="calendar-days" class="h-6 w-6" /></span>
                 <h3>No calendar yet</h3>
                 <p>UIU's {{ strtolower($programs[$program]) }} calendar has not been imported. An administrator can run <code>php artisan uiu:import-calendars</code>.</p>
             </div>

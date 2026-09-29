@@ -9,7 +9,7 @@
                         : 'Assignments from your classes, exams, fee instalments and admin cut-offs from your academic calendar, and events you registered for.' }}
                 </p>
             </div>
-            <a href="{{ route('calendar.index') }}" class="btn-secondary"><x-ui-icon name="calendar" class="h-4 w-4" />Academic calendar</a>
+            <a href="{{ route('calendar.index') }}" class="btn-secondary"><x-ui-icon name="calendar-days" class="h-4 w-4" />Academic calendar</a>
         </div>
 
         @forelse ($groups as $label => $items)

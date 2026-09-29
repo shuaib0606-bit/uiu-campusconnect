@@ -15,7 +15,7 @@
 <a href="{{ route('calendar.index') }}" class="rail-card group block transition hover:border-primary-300 dark:hover:border-primary-700" aria-label="Open the full academic calendar">
     <div class="mb-3 flex items-start justify-between gap-2">
         <div class="min-w-0">
-            <h3 class="inline-flex items-center gap-1.5"><x-ui-icon name="calendar" class="h-4 w-4 text-primary-500" />Academic calendar</h3>
+            <h3 class="inline-flex items-center gap-1.5"><x-ui-icon name="calendar-days" class="h-4 w-4 text-primary-500" />Academic calendar</h3>
             <p class="mt-0.5 truncate text-[11px] text-ink-400">{{ trim($term.' · '.AcademicCalendar::PROGRAMS[$program], ' ·') }}</p>
         </div>
         <x-ui-icon name="chevron-right" class="mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-primary-500" />

@@ -51,9 +51,9 @@ class AcademicCalendar
         'deadline' => ['one' => 'Deadline', 'label' => 'Deadlines', 'icon' => 'hourglass', 'chip' => 'bg-orange-500/10 text-orange-600 dark:text-orange-300', 'dot' => 'bg-orange-500'],
         'registration' => ['one' => 'Registration', 'label' => 'Registration', 'icon' => 'register', 'chip' => 'bg-sky-500/10 text-sky-700 dark:text-sky-300', 'dot' => 'bg-sky-500'],
         'classes' => ['one' => 'Classes', 'label' => 'Classes', 'icon' => 'class', 'chip' => 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300', 'dot' => 'bg-indigo-500'],
-        'holiday' => ['one' => 'Holiday', 'label' => 'Holidays', 'icon' => 'umbrella', 'chip' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'dot' => 'bg-emerald-500'],
-        'grading' => ['one' => 'Grading', 'label' => 'Grading', 'icon' => 'check-badge', 'chip' => 'bg-violet-500/10 text-violet-600 dark:text-violet-300', 'dot' => 'bg-violet-500'],
-        'event' => ['one' => 'Event', 'label' => 'Events', 'icon' => 'ticket', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300', 'dot' => 'bg-pink-500'],
+        'holiday' => ['one' => 'Holiday', 'label' => 'Holidays', 'icon' => 'sun', 'chip' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'dot' => 'bg-emerald-500'],
+        'grading' => ['one' => 'Grading', 'label' => 'Grading', 'icon' => 'grade', 'chip' => 'bg-violet-500/10 text-violet-600 dark:text-violet-300', 'dot' => 'bg-violet-500'],
+        'event' => ['one' => 'Event', 'label' => 'Events', 'icon' => 'calendar-star', 'chip' => 'bg-pink-500/10 text-pink-600 dark:text-pink-300', 'dot' => 'bg-pink-500'],
         'academic' => ['one' => 'Other', 'label' => 'Other', 'icon' => 'info', 'chip' => 'bg-primary-500/10 text-primary-600 dark:text-primary-300', 'dot' => 'bg-primary-500'],
     ];
 
