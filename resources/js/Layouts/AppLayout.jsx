@@ -80,15 +80,15 @@ export default function AppLayout({ title, children }) {
         ['/feed', 'home', 'Feed'],
         ['/assistant', 'sparkles', 'Assistant'],
         ['/network', 'network', 'Network'],
-        ['/connect-requests', 'handshake', 'Applications', badges.applications],
+        ['/connect-requests', 'inbox-in', 'Applications', badges.applications],
         ['/messages', 'message', 'Messages', badges.messages],
-        ['/clubs', 'award', 'Clubs'],
-        ['/events', 'ticket', 'Events'],
-        ['/calendar', 'calendar', 'Academic calendar'],
+        ['/clubs', 'pennant', 'Clubs'],
+        ['/events', 'calendar-star', 'Events'],
+        ['/calendar', 'calendar-days', 'Academic calendar'],
         ['/groups', 'users', 'Groups', badges.groups],
         ['/notices', 'megaphone', 'Notices'],
-        ['/marketplace', 'shopping-bag', 'Marketplace'],
-        ['/lost-found', 'box', 'Lost & Found'],
+        ['/marketplace', 'storefront', 'Marketplace'],
+        ['/lost-found', 'box-question', 'Lost & Found'],
     ];
 
     const adminLinks = [
@@ -149,7 +149,7 @@ export default function AppLayout({ title, children }) {
                         <UiuSites sites={uiuSites} />
 
                         {user?.can_issue_section_announcements && (
-                            <NavLink href="/administration" icon="briefcase" label="Administration" active={starts('/administration')} />
+                            <NavLink href="/administration" icon="institution" label="Administration" active={starts('/administration')} />
                         )}
 
                         {user?.is_admin && (
@@ -242,7 +242,7 @@ export default function AppLayout({ title, children }) {
                         <SmartLink href="/feed" className="btn-icon"><Icon name="home" className="h-5 w-5" /></SmartLink>
                         <SmartLink href="/network" className="btn-icon"><Icon name="network" className="h-5 w-5" /></SmartLink>
                         <SmartLink href="/messages" className="btn-icon"><Icon name="message" className="h-5 w-5" /></SmartLink>
-                        <SmartLink href="/events" className="btn-icon"><Icon name="ticket" className="h-5 w-5" /></SmartLink>
+                        <SmartLink href="/events" className="btn-icon"><Icon name="calendar-star" className="h-5 w-5" /></SmartLink>
                         <SmartLink href="/me" className="btn-icon"><Icon name="user" className="h-5 w-5" /></SmartLink>
                     </nav>
                 </div>
