@@ -274,7 +274,7 @@
                             <div class="mt-3 grid grid-cols-3 gap-2 border-t border-ink-100 pt-3 dark:border-ink-800/70">
                                 <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="image" class="h-5 w-5" />Photo/video</a>
                                 <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="paperclip" class="h-5 w-5" />Document</a>
-                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="gift" class="h-5 w-5" />Life update</a>
+                                <a href="{{ route('feed.index') }}" class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-ink-500 hover:bg-ink-900/[0.04] hover:text-ink-900 dark:text-ink-400 dark:hover:bg-white/[0.05] dark:hover:text-white"><x-ui-icon name="party" class="h-5 w-5" />Life update</a>
                             </div>
                         </div>
                     @endif
