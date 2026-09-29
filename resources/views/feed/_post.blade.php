@@ -113,7 +113,7 @@
                             url: '{{ route('network.follow', $post->user) }}',
                             errorMessage: 'Could not update follow.',
                         })" @click="run(); menu = false" class="post-menu-item">
-                        <x-ui-icon name="star" class="h-4 w-4 shrink-0" />{{ $isFollowing ? 'Unfollow' : 'Follow' }} {{ \Illuminate\Support\Str::before($post->user->full_name, ' ') }}
+                        <x-ui-icon name="rss" class="h-4 w-4 shrink-0" />{{ $isFollowing ? 'Unfollow' : 'Follow' }} {{ \Illuminate\Support\Str::before($post->user->full_name, ' ') }}
                     </button>
 
                     <button type="button" x-data="ccAction({
