@@ -39,9 +39,9 @@
     $tiles = [
         'shuttle' => ['title' => 'Shuttle', 'icon' => 'bus', 'tone' => 'bg-sky-500/12 text-sky-600 dark:text-sky-300'],
         'deadlines' => ['title' => 'Deadlines', 'icon' => 'hourglass', 'tone' => 'bg-orange-500/12 text-orange-600 dark:text-orange-300'],
-        'calendar' => ['title' => 'Calendar', 'icon' => 'calendar', 'tone' => 'bg-primary-500/12 text-primary-600 dark:text-primary-300'],
-        'events' => ['title' => 'Events', 'icon' => 'ticket', 'tone' => 'bg-pink-500/12 text-pink-600 dark:text-pink-300'],
-        'clubs' => ['title' => 'Clubs', 'icon' => 'award', 'tone' => 'bg-amber-500/12 text-amber-600 dark:text-amber-300'],
+        'calendar' => ['title' => 'Calendar', 'icon' => 'calendar-days', 'tone' => 'bg-primary-500/12 text-primary-600 dark:text-primary-300'],
+        'events' => ['title' => 'Events', 'icon' => 'calendar-star', 'tone' => 'bg-pink-500/12 text-pink-600 dark:text-pink-300'],
+        'clubs' => ['title' => 'Clubs', 'icon' => 'pennant', 'tone' => 'bg-amber-500/12 text-amber-600 dark:text-amber-300'],
     ];
 @endphp
 
@@ -91,21 +91,21 @@
         </button>
 
         <button type="button" @click="panel = 'calendar'" class="rail-tile">
-            <span class="rail-tile-icon {{ $tiles['calendar']['tone'] }}"><x-ui-icon name="calendar" class="h-6 w-6" /></span>
+            <span class="rail-tile-icon {{ $tiles['calendar']['tone'] }}"><x-ui-icon name="calendar-days" class="h-6 w-6" /></span>
             <span class="rail-tile-title">Calendar</span>
             <span class="rail-tile-fact">{{ $calendarNext ? AcademicCalendar::relative($calendarNext) : 'Nothing left' }}</span>
             <span class="rail-tile-sub">{{ $calendarNext ? \Illuminate\Support\Str::limit($calendarNext['label'], 28) : AcademicCalendar::PROGRAMS[AcademicCalendar::programFor($viewer)] }}</span>
         </button>
 
         <button type="button" @click="panel = 'events'" class="rail-tile">
-            <span class="rail-tile-icon {{ $tiles['events']['tone'] }}"><x-ui-icon name="ticket" class="h-6 w-6" /></span>
+            <span class="rail-tile-icon {{ $tiles['events']['tone'] }}"><x-ui-icon name="calendar-star" class="h-6 w-6" /></span>
             <span class="rail-tile-title">Events</span>
             <span class="rail-tile-fact">{{ $upcomingEvents->isEmpty() ? 'None coming up' : $upcomingEvents->count().' coming up' }}</span>
             <span class="rail-tile-sub">{{ $nextEvent ? $nextEvent->start_datetime->format('D, M j') : 'Browse events' }}</span>
         </button>
 
         <button type="button" @click="panel = 'clubs'" class="rail-tile">
-            <span class="rail-tile-icon {{ $tiles['clubs']['tone'] }}"><x-ui-icon name="award" class="h-6 w-6" /></span>
+            <span class="rail-tile-icon {{ $tiles['clubs']['tone'] }}"><x-ui-icon name="pennant" class="h-6 w-6" /></span>
             <span class="rail-tile-title">Clubs</span>
             <span class="rail-tile-fact">{{ $suggestedClubs->isEmpty() ? 'Browse clubs' : $suggestedClubs->count().' for you' }}</span>
             <span class="rail-tile-sub">{{ $suggestedClubs->first()?->name ? \Illuminate\Support\Str::limit($suggestedClubs->first()->name, 28) : 'Find your people' }}</span>
@@ -149,7 +149,7 @@
                         <div class="space-y-3">
                             @foreach ($upcomingEvents as $event)
                                 <a href="{{ route('events.show', $event) }}" class="group flex items-start gap-3">
-                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-300"><x-ui-icon name="ticket" class="h-4 w-4" /></span>
+                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-300"><x-ui-icon name="calendar-star" class="h-4 w-4" /></span>
                                     <span class="min-w-0">
                                         <span class="block truncate text-sm font-medium group-hover:underline">{{ $event->title }}</span>
                                         <span class="block text-xs text-ink-500 dark:text-ink-400">{{ $event->start_datetime->format('D, M j, g:i A') }}</span>
@@ -169,7 +169,7 @@
                         <div class="space-y-3">
                             @foreach ($suggestedClubs as $club)
                                 <a href="{{ route('clubs.show', $club) }}" class="group flex items-center gap-3">
-                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-300"><x-ui-icon name="award" class="h-4 w-4" /></span>
+                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-300"><x-ui-icon name="pennant" class="h-4 w-4" /></span>
                                     <span class="min-w-0">
                                         <span class="block truncate text-sm font-medium group-hover:underline">{{ $club->name }}</span>
                                         <span class="block text-xs text-ink-500 dark:text-ink-400">{{ $club->members_count }} member{{ $club->members_count === 1 ? '' : 's' }}</span>

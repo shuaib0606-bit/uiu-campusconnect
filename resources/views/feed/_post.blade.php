@@ -104,7 +104,7 @@
 
                 @if (! $isOwnPost)
                     <button type="button" @click="hidePost(); menu = false" class="post-menu-item">
-                        <x-ui-icon name="x" class="h-4 w-4 shrink-0" />Hide post
+                        <x-ui-icon name="eye-off" class="h-4 w-4 shrink-0" />Hide post
                     </button>
 
                     <div class="my-1 border-t border-ink-100 dark:border-ink-800/70"></div>
@@ -113,7 +113,7 @@
                             url: '{{ route('network.follow', $post->user) }}',
                             errorMessage: 'Could not update follow.',
                         })" @click="run(); menu = false" class="post-menu-item">
-                        <x-ui-icon name="user-minus" class="h-4 w-4 shrink-0" />{{ $isFollowing ? 'Unfollow' : 'Follow' }} {{ \Illuminate\Support\Str::before($post->user->full_name, ' ') }}
+                        <x-ui-icon name="star" class="h-4 w-4 shrink-0" />{{ $isFollowing ? 'Unfollow' : 'Follow' }} {{ \Illuminate\Support\Str::before($post->user->full_name, ' ') }}
                     </button>
 
                     <button type="button" x-data="ccAction({
@@ -174,7 +174,7 @@
                         @method('DELETE')
                         <input type="hidden" name="reason" value="Removed by author">
                         <button class="post-menu-item text-red-600 hover:!bg-red-500/10 dark:text-red-400">
-                            <x-ui-icon name="x" class="h-4 w-4 shrink-0" />Delete post
+                            <x-ui-icon name="trash" class="h-4 w-4 shrink-0" />Delete post
                         </button>
                     </form>
                 @endif
