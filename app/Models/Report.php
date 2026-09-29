@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Report extends Model
 {
-    protected $fillable = ['reporter_id', 'post_id', 'reason', 'status', 'reviewed_by', 'reviewed_at', 'moderator_note'];
+    protected $fillable = ['reporter_id', 'post_id', 'reason', 'details', 'status', 'reviewed_by', 'reviewed_at', 'moderator_note'];
 
     protected function casts(): array
     {

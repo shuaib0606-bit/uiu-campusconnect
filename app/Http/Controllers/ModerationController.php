@@ -77,7 +77,8 @@ class ModerationController extends Controller
                 $r,
                 route('moderation.profiles.review', $r),
                 'Suspend user',
-                $r->details ?: null,
+                // The reporter's own description is sent as 'details'.
+                null,
                 null,
                 $r->reportedUser ? [
                     'name' => $r->reportedUser->full_name,
@@ -106,6 +107,7 @@ class ModerationController extends Controller
             'created_at' => $report->created_at->format('M j, Y g:i A'),
             'reporter' => $report->reporter?->full_name ?? 'Unknown',
             'reason' => $report->reason,
+            'details' => $report->details ?? null,
             'quote' => $quote,
             'missing' => $quote === null ? $missing : null,
             'against' => $against,

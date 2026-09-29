@@ -42,7 +42,8 @@ class ReportResource extends Resource
             ->columns([
                 TextColumn::make('reporter.full_name')->label('Reporter')->searchable(),
                 TextColumn::make('post.body')->label('Post')->limit(60),
-                TextColumn::make('reason')->limit(60),
+                TextColumn::make('reason')->limit(60)
+                    ->description(fn ($record) => $record->details ? \Illuminate\Support\Str::limit($record->details, 80) : null),
                 TextColumn::make('status')->badge()
                     ->color(fn (string $state) => match ($state) {
                         'open' => 'danger',

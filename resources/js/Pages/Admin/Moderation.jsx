@@ -61,6 +61,13 @@ function ReportCard({ report, tab }) {
                 <p className="mt-1 text-sm"><strong>Reason:</strong> {report.reason}</p>
             )}
 
+            {report.details && (
+                <div className="mt-2 rounded-xl border-l-[3px] border-amber-500/60 bg-amber-500/[0.06] px-3 py-2 text-sm">
+                    <p className="text-xs font-semibold text-ink-500 dark:text-ink-400">In the reporter's words</p>
+                    <p className="mt-0.5 whitespace-pre-line text-ink-700 dark:text-ink-200">{report.details}</p>
+                </div>
+            )}
+
             {report.quote && (
                 report.against ? (
                     <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">{report.quote}</p>
