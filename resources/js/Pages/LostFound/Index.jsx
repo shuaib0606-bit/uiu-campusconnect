@@ -309,7 +309,7 @@ export default function LostFoundIndex({ items, filters, counts, can, auth }) {
 
                 {items.data.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="box" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="box-question" className="h-6 w-6" /></span>
                         <h3>{filtered ? 'Nothing matches' : blankTitle}</h3>
                         <p>{filtered ? 'Try a different search term or switch tabs.' : blankLine}</p>
                     </div>

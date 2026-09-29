@@ -120,7 +120,7 @@
                             </div>
                         @empty
                             <div class="empty-state">
-                                <span class="empty-icon"><x-ui-icon name="box" class="h-6 w-6" /></span>
+                                <span class="empty-icon"><x-ui-icon name="box-question" class="h-6 w-6" /></span>
                                 <h3>No claims yet</h3>
                                 <p>When someone recognises this item, their message will appear here.</p>
                             </div>

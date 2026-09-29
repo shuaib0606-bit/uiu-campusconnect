@@ -237,7 +237,7 @@ export default function MarketplaceIndex({ items, categories, filters, total, au
 
                 {items.data.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="shopping-bag" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="storefront" className="h-6 w-6" /></span>
                         <h3>{filtered ? 'No matching listings' : 'No listings yet'}</h3>
                         <p>
                             {filtered
