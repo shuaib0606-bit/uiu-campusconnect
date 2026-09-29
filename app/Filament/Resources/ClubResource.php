@@ -19,7 +19,7 @@ class ClubResource extends Resource
 {
     protected static ?string $model = Club::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-trophy';
+    protected static string|\BackedEnum|null $navigationIcon = 'campus-pennant';
 
     protected static ?string $navigationLabel = 'Clubs';
 

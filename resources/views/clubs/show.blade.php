@@ -185,7 +185,7 @@
                     </div>
                     @if ($canProposePanel && ! $pendingPanel)
                         <button type="button" @click="proposing = !proposing" class="btn-secondary !px-3 !py-1.5 text-xs whitespace-nowrap">
-                            <x-ui-icon name="users" class="h-3.5 w-3.5" />Propose new panel
+                            <x-ui-icon name="plus" class="h-3.5 w-3.5" />Propose new panel
                         </button>
                     @endif
                 </div>
@@ -319,7 +319,7 @@
                         </p>
                     </div>
                     <button type="button" @click="nominating = !nominating" class="btn-secondary !px-3 !py-1.5 text-xs whitespace-nowrap">
-                        <x-ui-icon name="user-plus" class="h-3.5 w-3.5" />Put a name forward
+                        <x-ui-icon name="plus" class="h-3.5 w-3.5" />Put a name forward
                     </button>
                 </div>
 

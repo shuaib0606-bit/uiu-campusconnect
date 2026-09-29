@@ -14,7 +14,7 @@ function ClubCard({ club }) {
                         <img src={club.logo_url} alt={`${club.name} logo`} className="h-12 w-12 shrink-0 rounded-2xl object-cover" />
                     ) : (
                         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-300">
-                            <Icon name="award" className="h-6 w-6" />
+                            <Icon name="pennant" className="h-6 w-6" />
                         </span>
                     )}
                     <div className="min-w-0">
@@ -74,7 +74,7 @@ export default function ClubsIndex({ clubs, filters }) {
 
                 {clubs.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-icon"><Icon name="award" className="h-6 w-6" /></span>
+                        <span className="empty-icon"><Icon name="pennant" className="h-6 w-6" /></span>
                         <h3>No clubs found</h3>
                         <p>Try a different search term.</p>
                     </div>
