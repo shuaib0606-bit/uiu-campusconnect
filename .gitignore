@@ -36,3 +36,19 @@ _to_delete/
 /_incoming/
 /_to_delete/
 /composer.lock.before-*
+
+# Added when the project was put under Git (30 Sep 2026): uploads, logs,
+# sync reports (which can hold one-time passwords), local databases,
+# archives and dumps never belong in the repository.
+/storage/app/*
+!/storage/app/public/
+/storage/logs/*
+!/storage/logs/.gitignore
+*.sqlite
+*.tgz
+*.tar.gz
+*.zip
+*.sql
+*.log
+accounts.json
+/bootstrap/cache/*.php
